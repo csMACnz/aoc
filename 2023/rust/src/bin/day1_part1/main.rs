@@ -6,21 +6,13 @@ fn main() {
 
     let mut total = 0;
     for line in content.lines() {
-        let mut first = 0;
-        for c in line.chars() {
-            if c >= '0' && c <= '9' {
-                first = c.to_digit(10).unwrap();
-                break;
-            }
-        }
-        
-        let mut last = 0;
-        for c in line.chars() {
-            if c >= '0' && c <= '9' {
-                last = c.to_digit(10).unwrap();
-                
-            }
-        }
+
+        let mut it = line.chars().filter_map(|c|{ c.to_digit(10) });
+        let first = it.next().unwrap();
+        let last = match it.last() {
+            Some(l)=> l,
+            None=>first
+        };
 
         println!("{}{}", first, last);
         total += first * 10 + last;

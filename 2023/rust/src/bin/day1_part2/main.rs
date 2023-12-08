@@ -28,18 +28,14 @@ fn main() {
     let mut total = 0;
     for line in content.lines() {
         let first = values
-            .map(|v|{findFirst(line, v.0, v.1, v.2)})
-            .into_iter()
-            .filter(|q| q.is_some())
-            .map(|q| q.unwrap())
+            .iter()
+            .filter_map(|v|{findFirst(line, v.0, v.1, v.2)})
             .min_by(|lhs, rhs|{lhs.0.cmp(&rhs.0)})
             .unwrap().1;
 
         let last = values
-            .map(|v|{findLast(line, v.0, v.1, v.2)})
-            .into_iter()
-            .filter(|q| q.is_some())
-            .map(|q| q.unwrap())
+            .iter()
+            .filter_map(|v|{findLast(line, v.0, v.1, v.2)})
             .max_by(|lhs, rhs|{lhs.0.cmp(&rhs.0)})
             .unwrap().1;
 
