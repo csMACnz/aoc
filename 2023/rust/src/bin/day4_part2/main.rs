@@ -36,7 +36,7 @@ fn match_count(card: &Card) -> usize {
 }
 
 fn main() {
-    let cards = parse_file("./src/bin/day4_part1/puzzle.txt");
+    let cards = parse_file("./src/bin/day4_part2/puzzle.txt");
 
     let mut scores: Vec<usize> = cards.iter().map(|_|{1}).collect();
 
