@@ -1,6 +1,9 @@
 use std::{collections::VecDeque, fs};
 
+#[derive(Clone, Debug)]
 struct Node {
+    x: usize,
+    y: usize,
     symbol: char,
     visited: bool,
     neighbours: Vec<usize>,
@@ -11,6 +14,14 @@ struct Graph {
     x_dim: usize,
     y_dim: usize,
     nodes: Vec<Node>,
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum FillState {
+    Out,
+    TopIn,
+    BottomIn,
+    In,
 }
 
 impl Graph {
@@ -35,6 +46,28 @@ impl Graph {
 
     fn neighbours<'a>(self: &'a Self, idx: usize) -> std::slice::Iter<'a, usize> {
         self.nodes[idx].neighbours.iter()
+    }
+
+    fn solve_start_symbol(self: &mut Self, before: usize, after: usize) {
+        let start_node = &self.nodes[self.start];
+        let before_node = &self.nodes[before];
+        let after_node = &self.nodes[after];
+        let symbol = match (
+            before_node.y as i64 - start_node.y as i64,
+            before_node.x as i64 - start_node.x as i64,
+            after_node.y as i64 - start_node.y as i64,
+            after_node.x as i64 - start_node.x as i64,
+        ) {
+            (0, -1, 0, 1) | (0, 1, 0, -1) => '-',
+            (0, 1, 1, 0) | (1, 0, 0, 1) => 'F',
+            (-1, 0, 0, 1) | (0, 1, -1, 0) => 'L',
+            (0, -1, 1, 0) | (1, 0, 0, -1) => '7',
+            (-1, 0, 0, -1) | (0, -1, -1, 0) => 'J',
+            (-1, 0, 1, 0) | (1, 0, -1, 0) => '|',
+            _ => panic!("Dev Error"),
+        };
+        let start_node = &mut self.nodes[self.start];
+        start_node.symbol = symbol;
     }
 }
 
@@ -118,6 +151,8 @@ fn parse_file(path: &str) -> Graph {
         .flat_map(|l| {
             l.chars()
                 .map(|c| Node {
+                    x: 0,
+                    y: 0,
                     symbol: c,
                     visited: false,
                     neighbours: Vec::new(),
@@ -145,7 +180,10 @@ fn parse_file(path: &str) -> Graph {
             } else {
                 gen_neighbours(&graph, y, x)
             };
-            graph.at_index_mut(y, x).neighbours.append(&mut neighbours);
+            let node = graph.at_index_mut(y, x);
+            node.neighbours.append(&mut neighbours);
+            node.x = x;
+            node.y = y;
         }
     }
 
@@ -191,12 +229,102 @@ fn part_1(path: &str) -> i64 {
     0
 }
 
+fn part_2(path: &str) -> i64 {
+    let mut graph = parse_file(path);
+
+    let mut second = 0;
+
+    let mut queue = VecDeque::new();
+
+    for n in graph.neighbours(graph.start) {
+        queue.push_back((*n, graph.start, *n, 1));
+    }
+    graph.mark(graph.start);
+    while queue.len() > 0 {
+        let (seed, prev, curr, depth) = queue.pop_front().unwrap();
+        graph.mark(curr);
+        for n in graph.neighbours(curr) {
+            if *n == prev {
+                continue;
+            }
+
+            if graph.nodes[*n].visited {
+                second = seed;
+                break;
+            }
+
+            queue.push_back((seed, curr, *n, depth + 1));
+        }
+    }
+
+    let mut path = Vec::new();
+    let mut curr = second;
+    let mut prev = graph.start;
+    path.push(graph.nodes[graph.start].clone());
+    while curr != graph.start {
+        let node = &graph.nodes[curr];
+        path.push(node.clone());
+        assert!(node.neighbours.len() == 2);
+        // println!("{prev}->{curr} {:?}", node.neighbours);
+        let mut neighbours = node.neighbours.iter().filter(|n| **n != prev);
+        let next_idx = *neighbours.next().unwrap();
+        assert!(neighbours.next().is_none());
+
+        prev = curr;
+        curr = next_idx;
+    }
+    graph.solve_start_symbol(second, prev);
+    path[0].symbol = graph.nodes[graph.start].symbol;
+
+    let mut grid: Vec<Vec<Option<char>>> = Vec::new();
+    for y in 0..graph.y_dim {
+        let mut row = Vec::new();
+        for x in 0..graph.x_dim {
+            row.push(None);
+        }
+        grid.push(row);
+    }
+    for p in path {
+        grid[p.y][p.x] = Some(p.symbol);
+    }
+    let mut total = 0;
+    let mut state = FillState::Out;
+    for y in 0..graph.y_dim {
+        for x in 0..graph.x_dim {
+            match (grid[y][x], state) {
+                (None, FillState::In) => {
+                    total += 1;
+                }
+                (None, FillState::Out) => { /* NOOP */ }
+                (Some('|'), FillState::Out) => state = FillState::In,
+                (Some('|'), FillState::In) => state = FillState::Out,
+                (Some('-'), _) => {}
+                (Some('L'), FillState::Out) => state = FillState::TopIn,
+                (Some('L'), FillState::In) => state = FillState::BottomIn,
+                (Some('F'), FillState::Out) => state = FillState::BottomIn,
+                (Some('F'), FillState::In) => state = FillState::TopIn,
+                (Some('7'), FillState::TopIn) => state = FillState::In,
+                (Some('7'), FillState::BottomIn) => state = FillState::Out,
+                (Some('J'), FillState::TopIn) => state = FillState::Out,
+                (Some('J'), FillState::BottomIn) => state = FillState::In,
+                _ => {
+                    println!("{:?}{state:?}", grid[y][x]);
+                    panic!("Dev Error");
+                }
+            }
+        }
+    }
+
+    total
+}
+
 fn main() {
-    let answer = part_1("./src/bin/day10/puzzle.txt");
+    let answer1 = part_1("./src/bin/day10/puzzle.txt");
+    let answer2 = part_2("./src/bin/day10/puzzle.txt");
 
-    println!("Part1: {}", answer);
+    println!("Part1: {}", answer1);
 
-    println!("Part2: {}", "<Unknown>");
+    println!("Part2: {}", answer2);
 }
 
 #[test]
@@ -205,6 +333,7 @@ fn can_parse_part1_sample1() {
 
     assert_eq!(answer, 4);
 }
+
 #[test]
 fn can_parse_part1_sample2() {
     let answer = part_1("./src/bin/day10/part1_sample2.txt");
@@ -217,4 +346,24 @@ fn can_parse_part1_puzzle() {
     let answer = part_1("./src/bin/day10/puzzle.txt");
 
     assert_eq!(answer, 6907);
+}
+
+#[test]
+fn can_parse_part2_sample1() {
+    let answer = part_2("./src/bin/day10/part2_sample1.txt");
+
+    assert_eq!(answer, 4);
+}
+#[test]
+fn can_parse_part2_sample2() {
+    let answer = part_2("./src/bin/day10/part2_sample2.txt");
+
+    assert_eq!(answer, 10);
+}
+
+#[test]
+fn can_parse_part2_puzzle() {
+    let answer = part_2("./src/bin/day10/puzzle.txt");
+
+    assert_eq!(answer, 541);
 }
