@@ -1,29 +1,9 @@
-use std::fs;
+use std::{fs, iter};
 
+#[derive(Clone)]
 struct Spring {
-    state: Vec<SpringState>,
+    state: String,
     counts: Vec<u64>,
-}
-
-#[derive(PartialEq, Clone, Copy)]
-enum SpringState {
-    Operational,
-    Damaged,
-    Unknown,
-}
-
-fn parse_spring(springs: &str) -> Vec<SpringState> {
-    springs
-        .chars()
-        .map(|s| -> SpringState {
-            match s {
-                '.' => SpringState::Operational,
-                '#' => SpringState::Damaged,
-                '?' => SpringState::Unknown,
-                _ => unreachable!(),
-            }
-        })
-        .collect()
 }
 
 fn parse_file(path: &str) -> Vec<Spring> {
@@ -33,7 +13,7 @@ fn parse_file(path: &str) -> Vec<Spring> {
         .map(|l| {
             let (springs, counts) = l.split_once(" ").expect("aoc format '???.### 1,1,3");
             Spring {
-                state: parse_spring(springs),
+                state: springs.to_owned(),
                 counts: counts
                     .split(",")
                     .map(|c| c.parse().expect("aoc format '1,1,3'"))
@@ -43,41 +23,42 @@ fn parse_file(path: &str) -> Vec<Spring> {
         .collect()
 }
 
-fn count_arrangements(state: &[SpringState], counts: &[u64], inside: bool) -> u64 {
+fn count_arrangements(state: &str, current: Option<u64>, remainder_counts: &[u64]) -> u64 {
     if state.is_empty() {
-        if counts.is_empty() {
-            1
-        } else if counts.len() == 1 && counts[0] == 0 {
-            1
-        } else {
+        if !remainder_counts.is_empty() || current.is_some_and(|x| x > 0) {
             0
+        } else {
+            1
         }
     } else {
-        if state[0] == SpringState::Operational {
-            if !inside || counts.is_empty() {
-                count_arrangements(&state[1..], counts, false)
-            } else if counts[0] == 0 {
-                count_arrangements(&state[1..], &counts[1..], false)
+        if state.starts_with('.') {
+            if current.is_none() || current == Some(0) {
+                count_arrangements(&state[1..], None, remainder_counts)
             } else {
                 0
             }
-        } else if state[0] == SpringState::Unknown {
-            let mut state_if_damaged: Vec<SpringState> = state.into();
-            let mut state_if_operational: Vec<SpringState> = state.into();
-            state_if_damaged[0] = SpringState::Damaged;
-            state_if_operational[0] = SpringState::Operational;
-            count_arrangements(&state_if_damaged, &counts, inside)
-                + count_arrangements(&state_if_operational, &counts, inside)
-        } else if state[0] == SpringState::Damaged && counts.len() == 0 {
-            0
-        } else if state[0] == SpringState::Damaged && counts[0] == 0 {
-            0
-        } else if state[0] == SpringState::Damaged && counts[0] != 0 {
-            let mut x: Vec<u64> = counts.into();
-            x[0] -= 1;
-            count_arrangements(&state[1..], &x, true)
+        } else if state.starts_with('?') {
+            let mut state_if_damaged = state.to_owned();
+            let mut state_if_operational = state.to_owned();
+            state_if_damaged.replace_range(0..1, "#");
+            state_if_operational.replace_range(0..1, ".");
+            count_arrangements(&state_if_damaged, current, &remainder_counts)
+                + count_arrangements(&state_if_operational, current, &remainder_counts)
+        } else if state.starts_with('#') {
+            if current == Some(0) {
+                0
+            } else if current.is_none() && remainder_counts.is_empty() {
+                0
+            } else if current.is_none() {
+                let (new_current, new_remainder) = remainder_counts.split_first().unwrap();
+                count_arrangements(&state[1..], Some(new_current - 1), &new_remainder)
+            } else if let Some(x) = current {
+                count_arrangements(&state[1..], Some(x - 1), remainder_counts)
+            } else {
+                unreachable!();
+            }
         } else {
-            0
+            unreachable!();
         }
     }
 }
@@ -85,14 +66,26 @@ fn count_arrangements(state: &[SpringState], counts: &[u64], inside: bool) -> u6
 fn part_1(path: &str) -> u64 {
     let springs = parse_file(path);
     springs
-        .into_iter()
-        .map(|spring| count_arrangements(&spring.state, &spring.counts, false))
+        .iter()
+        .map(|spring| count_arrangements(&spring.state, None, &spring.counts))
         .sum()
 }
 
 fn part_2(path: &str) -> u64 {
     let springs = parse_file(path);
-    0
+
+    springs
+        .into_iter()
+        .map(|s| -> Spring {
+            let counts_len = s.counts.len();
+            let state = vec!(s.state; 5).join("?").to_string();
+            Spring {
+                state: state,
+                counts: s.counts.into_iter().cycle().take(counts_len * 5).collect(),
+            }
+        })
+        .map(|spring| count_arrangements(&spring.state, None, &spring.counts))
+        .sum()
 }
 
 fn main() {
@@ -116,4 +109,11 @@ fn can_parse_part1_puzzle() {
     let answer = part_1("./src/bin/day12/puzzle.txt");
 
     assert_eq!(answer, 7916);
+}
+
+#[test]
+fn can_parse_part2_sample() {
+    let answer = part_2("./src/bin/day12/part1_sample.txt");
+
+    assert_eq!(answer, 525152);
 }
