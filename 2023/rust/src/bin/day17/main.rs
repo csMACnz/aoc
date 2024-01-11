@@ -271,5 +271,5 @@ fn can_parse_part2_puzzle() {
 
     assert_ne!(answer, 1304);
     assert_ne!(answer, 1303);
-    assert_eq!(answer, 0);
+    assert_eq!(answer, 1294);
 }
