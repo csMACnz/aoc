@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fs,
 };
 
@@ -51,26 +51,18 @@ fn parse_file(path: &str) -> DigPlan {
     DigPlan { work }
 }
 
-fn part_1(path: &str) -> u64 {
-    let plan = parse_file(path);
-    let mut path = Vec::new();
-    let mut curr: (isize, isize) = (0, 0);
-    path.push(curr);
-    for work in plan.work {
-        let offset: (isize, isize) = match work.direction {
-            Direction::Up => (-1, 0),
-            Direction::Down => (1, 0),
-            Direction::Left => (0, -1),
-            Direction::Right => (0, 1),
-        };
-        curr = (
-            curr.0 + offset.0 * work.distance,
-            curr.1 + offset.1 * work.distance,
-        );
-        path.push(curr);
-    }
+fn calculate_area_using_shoelace(path: &Vec<(isize, isize)>) -> u64 {
     assert!(path[0] == path[path.len() - 1]);
-    path.pop();
+
+    (path
+        .windows(2)
+        .map(|p| ((p[0].1 * p[1].0) as isize) - ((p[1].1 * p[0].0) as isize))
+        .sum::<isize>() as usize
+        / 2) as u64
+}
+fn calculate_area_using_in_out_odd_even(path: &Vec<(isize, isize)>) -> u64 {
+    assert!(path[0] == path[path.len() - 1]);
+
     let min_x = path.iter().map(|(_, x)| x).min().unwrap();
     let max_x = path.iter().map(|(_, x)| x).max().unwrap();
     let min_y = path.iter().map(|(y, _)| y).min().unwrap();
@@ -82,35 +74,23 @@ fn part_1(path: &str) -> u64 {
     let width = (max_x - min_x + 1) as usize;
     let height = (max_y - min_y + 1) as usize;
 
-    // for y in 0..height {
-    //     for x in 0..width {
-    //         let edge = path.contains(&(y, x));
-    //         if edge {
-    //             print!("{}", "#");
-    //         } else {
-    //             print!("{}", ".");
-    //         }
-    //     }
-    //     println!("");
-    // }
     let mut grid = HashMap::new();
-    for p in vec![path[path.len() - 1]]
+    for p in vec![path[path.len() - 2]]
         .iter()
         .chain(path.iter())
-        .chain(vec![path[0]].iter())
         .cloned()
         .collect::<Vec<(usize, usize)>>()
         .windows(3)
     {
         let corner = match p {
-            [(y0, x0), (y1, x1), (y2, x2)] if y0 == y1 && x0 < x1 && y2 > y1 => '7',
-            [(y0, x0), (y1, x1), (y2, x2)] if y0 == y1 && x0 > x1 && y2 > y1 => 'F',
-            [(y0, x0), (y1, x1), (y2, x2)] if y0 == y1 && x0 < x1 && y2 < y1 => 'J',
-            [(y0, x0), (y1, x1), (y2, x2)] if y0 == y1 && x0 > x1 && y2 < y1 => 'L',
-            [(y0, x0), (y1, x1), (y2, x2)] if x0 == x1 && y0 < y1 && x2 > x1 => 'L',
-            [(y0, x0), (y1, x1), (y2, x2)] if x0 == x1 && y0 > y1 && x2 > x1 => 'F',
-            [(y0, x0), (y1, x1), (y2, x2)] if x0 == x1 && y0 < y1 && x2 < x1 => 'J',
-            [(y0, x0), (y1, x1), (y2, x2)] if x0 == x1 && y0 > y1 && x2 < x1 => '7',
+            [(y0, x0), (y1, x1), (y2, _)] if y0 == y1 && x0 < x1 && y2 > y1 => '7',
+            [(y0, x0), (y1, x1), (y2, _)] if y0 == y1 && x0 > x1 && y2 > y1 => 'F',
+            [(y0, x0), (y1, x1), (y2, _)] if y0 == y1 && x0 < x1 && y2 < y1 => 'J',
+            [(y0, x0), (y1, x1), (y2, _)] if y0 == y1 && x0 > x1 && y2 < y1 => 'L',
+            [(y0, x0), (y1, x1), (_, x2)] if x0 == x1 && y0 < y1 && x2 > x1 => 'L',
+            [(y0, x0), (y1, x1), (_, x2)] if x0 == x1 && y0 > y1 && x2 > x1 => 'F',
+            [(y0, x0), (y1, x1), (_, x2)] if x0 == x1 && y0 < y1 && x2 < x1 => 'J',
+            [(y0, x0), (y1, x1), (_, x2)] if x0 == x1 && y0 > y1 && x2 < x1 => '7',
             _ => unreachable!(),
         };
         grid.insert(p[1], corner);
@@ -127,15 +107,12 @@ fn part_1(path: &str) -> u64 {
         }
     }
 
-    // println!("");
     let mut ans = 0;
     for y in 0..height {
         for x in 0..width {
-            if let Some(edge) = grid.get(&(y, x)) {
-                // print!("{}", edge);
+            if let Some(_) = grid.get(&(y, x)) {
                 ans += 1;
             } else {
-                // println!("{:?}, {:?}", (y, x), (1..=(y.min(x))).filter_map(|n| grid.get(&(y - n, x - n))).collect::<Vec<&char>>());
                 if (1..=(y.min(x)))
                     .filter(|n| {
                         if let Some(&x) = grid.get(&(y - n, x - n)) {
@@ -148,21 +125,66 @@ fn part_1(path: &str) -> u64 {
                     % 2
                     == 1
                 {
-                    // print!("{}", "#");
                     ans += 1;
                 } else {
-                    // print!("{}", ".");
                 }
             }
         }
-        println!("");
     }
     ans
 }
 
+fn part_1(path: &str) -> u64 {
+    let plan = parse_file(path);
+    let mut path = Vec::new();
+    let mut curr: (isize, isize) = (0, 0);
+    path.push(curr);
+    for work in &plan.work {
+        let offset: (isize, isize) = match work.direction {
+            Direction::Up => (-1, 0),
+            Direction::Down => (1, 0),
+            Direction::Left => (0, -1),
+            Direction::Right => (0, 1),
+        };
+        curr = (
+            curr.0 + offset.0 * work.distance,
+            curr.1 + offset.1 * work.distance,
+        );
+        path.push(curr);
+    }
+    let a = calculate_area_using_in_out_odd_even(&path);
+    let b = calculate_area_using_shoelace(&path)
+        + (&plan.work.iter().map(|w| w.distance as u64).sum::<u64>() / 2)
+        + 1;
+    println!("{a:?}=={b:?}");
+    assert!(a == b);
+    b
+}
+
 fn part_2(path: &str) -> u64 {
     let plan = parse_file(path);
-    0
+
+    let mut path = Vec::new();
+    let mut perimeter = 0_u64;
+    let mut curr: (isize, isize) = (0, 0);
+    path.push(curr);
+    //turn color into direction and distance
+    for work in plan.work {
+        // #70c710 = R 461937
+        let offset = match work.color.split_at(&work.color.len() - 1).1 {
+            "0" => (0_isize, 1_isize),
+            "1" => (1, 0),
+            "2" => (0, -1),
+            "3" => (-1, 0),
+            _ => unreachable!(),
+        };
+        let distance = isize::from_str_radix(&work.color[1..work.color.len() - 1], 16).unwrap();
+        curr = (curr.0 + offset.0 * distance, curr.1 + offset.1 * distance);
+        path.push(curr);
+        perimeter += distance as u64;
+    }
+
+    calculate_area_using_shoelace(&path) + (perimeter / 2) + 1
 }
 
 fn main() {
@@ -188,16 +210,16 @@ fn can_parse_part1_puzzle() {
     assert_eq!(answer, 44436);
 }
 
-// #[test]
+#[test]
 fn can_parse_part2_sample() {
     let answer = part_2("./src/bin/day18/sample.txt");
 
-    assert_eq!(answer, 0);
+    assert_eq!(answer, 952408144115);
 }
 
-// #[test]
+#[test]
 fn can_parse_part2_puzzle() {
     let answer = part_2("./src/bin/day18/puzzle.txt");
 
-    assert_eq!(answer, 0);
+    assert_eq!(answer, 106941819907437);
 }
