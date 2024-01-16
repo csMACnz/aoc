@@ -112,6 +112,95 @@ impl Part {
     }
 }
 
+#[derive(Debug, Clone)]
+struct PartRanges {
+    x: (u64, u64),
+    m: (u64, u64),
+    a: (u64, u64),
+    s: (u64, u64),
+}
+
+fn split(
+    min_max: (u64, u64),
+    comparison: &Comparison,
+    value: u64,
+) -> (Option<(u64, u64)>, Option<(u64, u64)>) {
+    assert!(min_max.1 >= min_max.0);
+    match comparison {
+        Comparison::LessThan => {
+            if min_max.1 < value {
+                (Some(min_max), None)
+            } else if min_max.0 >= value {
+                (None, Some(min_max))
+            } else {
+                (Some((min_max.0, value - 1)), Some((value, min_max.1)))
+            }
+        }
+        Comparison::GreaterThan => {
+            if min_max.1 <= value {
+                (Some(min_max), None)
+            } else if min_max.0 > value {
+                (None, Some(min_max))
+            } else {
+                (Some((min_max.0, value)), Some((value + 1, min_max.1)))
+            }
+        }
+    }
+}
+
+impl PartRanges {
+    fn init() -> PartRanges {
+        PartRanges {
+            x: (1, 4000),
+            m: (1, 4000),
+            a: (1, 4000),
+            s: (1, 4000),
+        }
+    }
+
+    fn get(&self, category: &Category) -> (u64, u64) {
+        match category {
+            Category::X => self.x,
+            Category::M => self.m,
+            Category::A => self.a,
+            Category::S => self.s,
+        }
+    }
+
+    fn with(&self, category: &Category, range: (u64, u64)) -> PartRanges {
+        let mut result: PartRanges = self.clone();
+        match category {
+            Category::X => result.x = range,
+            Category::M => result.m = range,
+            Category::A => result.a = range,
+            Category::S => result.s = range,
+        }
+        result
+    }
+
+    fn split(
+        &self,
+        category: &Category,
+        comparison: &Comparison,
+        value: u64,
+    ) -> (Option<Self>, Option<Self>) {
+        let (left, right) = split(self.get(&category), comparison, value);
+
+        (
+            left.and_then(|l| Some(self.with(&category, l))),
+            right.and_then(|r| Some(self.with(&category, r))),
+        )
+    }
+
+    fn score(&self) -> u64 {
+        let result = (self.x.1 - self.x.0 + 1)
+            * (self.m.1 - self.m.0 + 1)
+            * (self.a.1 - self.a.0 + 1)
+            * (self.s.1 - self.s.0 + 1);
+        result
+    }
+}
+
 impl FromStr for Part {
     type Err = Error;
 
@@ -236,9 +325,43 @@ fn part_1(path: &str) -> u64 {
     result
 }
 
+fn score(cogs: &Cogs, ranges: PartRanges, action: &Action) -> u64 {
+    match action {
+        Action::Workflow(workflow_name) => count_accepted_outcomes(&cogs, ranges, &workflow_name),
+        Action::Outcome(Outcome::Accepted) => ranges.score(),
+        Action::Outcome(Outcome::Rejected) => 0,
+    }
+}
+
+fn count_accepted_outcomes(cogs: &Cogs, ranges: PartRanges, workflow_name: &WorkflowName) -> u64 {
+    let (rules, fallback) = cogs.rules.get(workflow_name).unwrap();
+    let mut accepted_outcomes = 0;
+    let mut next = ranges;
+    for rule in rules {
+        let (left_range, right_range) = next.split(&rule.category, &rule.comparison, rule.value);
+        // recurse one side, and iterate the other
+        let (action_side, continue_side) = match rule.comparison {
+            Comparison::LessThan => (left_range, right_range),
+            Comparison::GreaterThan => (right_range, left_range),
+        };
+        if let Some(action_side) = action_side {
+            accepted_outcomes += score(cogs, action_side, &rule.action);
+        };
+        if let Some(continue_side) = continue_side {
+            next = continue_side;
+            continue;
+        } else {
+            return accepted_outcomes;
+        }
+    }
+    accepted_outcomes += score(cogs, next, &fallback);
+    accepted_outcomes
+}
+
 fn part_2(path: &str) -> u64 {
     let cogs = parse_file(path);
-    0
+    let initial_workflow = WorkflowName("in".into());
+    count_accepted_outcomes(&cogs, PartRanges::init(), &initial_workflow)
 }
 
 fn main() {
@@ -264,16 +387,15 @@ fn can_parse_part1_puzzle() {
     assert_eq!(answer, 432434);
 }
 
-// #[test]
+#[test]
 fn can_parse_part2_sample() {
     let answer = part_2("./src/bin/day19/sample.txt");
-
-    assert_eq!(answer, 0);
+    assert_eq!(answer, 167409079868000);
 }
 
-// #[test]
+#[test]
 fn can_parse_part2_puzzle() {
     let answer = part_2("./src/bin/day19/puzzle.txt");
 
-    assert_eq!(answer, 0);
+    assert_eq!(answer, 132557544578569);
 }
