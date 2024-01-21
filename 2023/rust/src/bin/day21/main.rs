@@ -80,11 +80,11 @@ fn part_2(path: &str, distance: u64) -> u64 {
     let mut prev_day: HashSet<(i64, i64)> = HashSet::new();
     prev_day.insert((grid.start.0 as i64, grid.start.1 as i64));
 
-    // let modulo = if grid.width < 32 {
-    //     grid.width as u64 * 2
-    // } else {
-    //     grid.width as u64
-    // };
+    let (modulo, iteration_count) = if grid.width < 32 {
+        (grid.width as u64 * 3, 10)
+    } else {
+        (grid.width as u64, 4)
+    };
     let modulo = grid.width as u64;
     let offset = distance % modulo;
     let x = (distance - offset) / modulo;
@@ -105,7 +105,7 @@ fn part_2(path: &str, distance: u64) -> u64 {
                 }
             }
         }
-        if i >= offset && deltas.len() < 5 {
+        if i >= offset && deltas.len() < iteration_count {
             if (i - offset) % modulo == 0 {
                 let next_day_len = next_day.len() as u64;
                 if deltas.len() == 0 {
@@ -121,7 +121,7 @@ fn part_2(path: &str, distance: u64) -> u64 {
 
                     deltas.push((i, next_day_len, delta, second_derivative));
 
-                    if deltas.len() >= 5 {
+                    if deltas.len() >= iteration_count {
                         // panic!();
                         //solve
 
@@ -134,8 +134,8 @@ fn part_2(path: &str, distance: u64) -> u64 {
                         //     .next()
                         //     .unwrap();
 
-                        assert!(deltas[3].3 == deltas[4].3);
-                        let a = deltas[3].3 as u64 / 2;
+                        assert!(deltas[deltas.len() - 2].3 == deltas[deltas.len() - 1].3);
+                        let a = deltas[deltas.len() - 1].3 as u64 / 2;
                         let c = deltas[0].1 as u64;
                         let b = deltas[1].1 as u64 - a - c;
 
@@ -150,6 +150,10 @@ fn part_2(path: &str, distance: u64) -> u64 {
                         println!("3={}", a * 3 * 3 + b * 3 + c);
                         println!("4={}", a * 4 * 4 + b * 4 + c);
                         println!("5={}", a * 5 * 5 + b * 5 + c);
+
+                        println!("(x-1)={}", a * (x - 1) * (x - 1) + b * (x - 1) + c);
+                        println!("x={}", a * x * x + b * x + c);
+                        println!("(x+1)={}", a * (x + 1) * (x + 1) + b * (x + 1) + c);
                         return a * x * x + b * x + c;
                     }
                 }
