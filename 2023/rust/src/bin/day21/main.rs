@@ -81,11 +81,10 @@ fn part_2(path: &str, distance: u64) -> u64 {
     prev_day.insert((grid.start.0 as i64, grid.start.1 as i64));
 
     let (modulo, iteration_count) = if grid.width < 32 {
-        (grid.width as u64 * 3, 10)
+        (grid.width as u64, 10)
     } else {
         (grid.width as u64, 4)
     };
-    let modulo = grid.width as u64;
     let offset = distance % modulo;
     let x = (distance - offset) / modulo;
     assert_eq!(distance, x * modulo + offset);
@@ -105,9 +104,15 @@ fn part_2(path: &str, distance: u64) -> u64 {
                 }
             }
         }
+        let next_day_len = next_day.len() as u64;
+        if ((i - 1) - offset) % modulo == 0
+            || ((i) - offset) % modulo == 0
+            || ((i + 1) - offset) % modulo == 0
+        {
+            println!("{}=>{}", i, next_day_len);
+        }
         if i >= offset && deltas.len() < iteration_count {
             if (i - offset) % modulo == 0 {
-                let next_day_len = next_day.len() as u64;
                 if deltas.len() == 0 {
                     deltas.push((i, next_day_len, 0_u64, 0_u64));
                 } else {
@@ -136,9 +141,9 @@ fn part_2(path: &str, distance: u64) -> u64 {
 
                         assert!(deltas[deltas.len() - 2].3 == deltas[deltas.len() - 1].3);
                         let a = deltas[deltas.len() - 1].3 as u64 / 2;
-                        let c = deltas[0].1 as u64;
-                        let b = deltas[1].1 as u64 - a - c;
-
+                        let c = deltas[deltas.len() - 4].1 as u64;
+                        let b = deltas[deltas.len() - 3].1 as u64 - a - c;
+                        let x = x - (deltas.len() as u64 - 4);
                         // let bb = deltas[1].2 as u64 - (2 * a); // b = y' - 2ax
                         // assert_eq!(bb, b);
 
@@ -285,9 +290,9 @@ fn can_parse_part2_puzzle_test_720() {
     assert_eq!(answer, 470977);
 }
 
-// #[test]
+#[test]
 fn can_parse_part2_puzzle() {
     let answer = part_2("./src/bin/day21/puzzle.txt", 26501365);
 
-    assert_eq!(answer, 0);
+    assert_eq!(answer, 636391426712747);
 }
