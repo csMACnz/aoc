@@ -44,7 +44,7 @@ fn part_1(path: &str, distance: u64) -> u64 {
     let mut prev_day = HashSet::new();
     prev_day.insert(grid.start);
 
-    for i in 0..distance {
+    for _ in 1..=distance {
         let mut next_day = HashSet::new();
         for p in prev_day {
             for (y_offset, x_offset) in vec![(-1_isize, 0_isize), (1, 0), (0, -1), (0, 1)] {
@@ -67,33 +67,24 @@ fn part_1(path: &str, distance: u64) -> u64 {
 }
 
 fn bound_offset(n: i64, dim: usize) -> usize {
-    let result = if n < 0 {
-        dim - (n.abs() as usize % dim)
-    } else {
-        n as usize % dim
-    };
-    result
+    n.rem_euclid(dim as  i64) as usize
 }
 
 fn part_2(path: &str, distance: u64) -> u64 {
     let grid = parse_file(path);
+    let directions = vec![(-1_i64, 0_i64), (1, 0), (0, -1), (0, 1)];
     let mut prev_day: HashSet<(i64, i64)> = HashSet::new();
     prev_day.insert((grid.start.0 as i64, grid.start.1 as i64));
-
-    let (modulo, iteration_count) = if grid.width < 32 {
-        (grid.width as u64, 10)
-    } else {
-        (grid.width as u64, 4)
-    };
+    let mut prev_value = prev_day.len() as u64;
+    let mut prev_delta = 0;
+    let mut prev_second_derivative = 0;
+    let modulo = grid.width as u64;
     let offset = distance % modulo;
-    let x = (distance - offset) / modulo;
-    assert_eq!(distance, x * modulo + offset);
 
-    let mut deltas = Vec::new();
     for i in 1..=distance {
         let mut next_day = HashSet::new();
         for p in &prev_day {
-            for (y_offset, x_offset) in vec![(-1_i64, 0_i64), (1, 0), (0, -1), (0, 1)] {
+            for (y_offset, x_offset) in &directions {
                 let p: (i64, i64) = (p.0 + y_offset, p.1 + x_offset);
                 let rock_offset_p: (usize, usize) = (
                     bound_offset(p.0, grid.height),
@@ -104,67 +95,33 @@ fn part_2(path: &str, distance: u64) -> u64 {
                 }
             }
         }
-        let next_day_len = next_day.len() as u64;
-        if ((i - 1) - offset) % modulo == 0
-            || ((i) - offset) % modulo == 0
-            || ((i + 1) - offset) % modulo == 0
-        {
-            println!("{}=>{}", i, next_day_len);
-        }
-        if i >= offset && deltas.len() < iteration_count {
-            if (i - offset) % modulo == 0 {
-                if deltas.len() == 0 {
-                    deltas.push((i, next_day_len, 0_u64, 0_u64));
-                } else {
-                    let (_, prev_len, last_delta, _) = deltas[deltas.len() - 1];
-                    let delta = next_day_len - prev_len;
-                    let second_derivative = if last_delta == 0 {
-                        0
-                    } else {
-                        delta - last_delta
-                    };
+        if i >= offset && (i - offset) % modulo == 0 {
+            let next_value = next_day.len() as u64;
+            let next_delta = next_value - prev_value;
+            let second_derivative = if prev_delta == 0 {
+                0
+            } else {
+                next_delta - prev_delta
+            };
+            if second_derivative != 0 && prev_second_derivative == second_derivative {
+                // ready to solve
 
-                    deltas.push((i, next_day_len, delta, second_derivative));
+                let base_line = ((i - offset) / modulo) - 1;
+                let raw_x = (distance - offset) / modulo;
+                let x = raw_x - base_line;
 
-                    if deltas.len() >= iteration_count {
-                        // panic!();
-                        //solve
+                let a = second_derivative / 2;
+                let c = prev_value;
+                let b = next_value - a - c;
 
-                        println!("{:?}", deltas);
-                        // let (quad_offset, _) = deltas
-                        //     .windows(2)
-                        //     .enumerate()
-                        //     .filter(|(i, [a, b])| a.3 == b.3)
-                        //     .take(1)
-                        //     .next()
-                        //     .unwrap();
-
-                        assert!(deltas[deltas.len() - 2].3 == deltas[deltas.len() - 1].3);
-                        let a = deltas[deltas.len() - 1].3 as u64 / 2;
-                        let c = deltas[deltas.len() - 4].1 as u64;
-                        let b = deltas[deltas.len() - 3].1 as u64 - a - c;
-                        let x = x - (deltas.len() as u64 - 4);
-                        // let bb = deltas[1].2 as u64 - (2 * a); // b = y' - 2ax
-                        // assert_eq!(bb, b);
-
-                        println!("x={}", x);
-                        println!("a={} b={} c={}", a, b, c);
-                        println!("0={}", a * 0 * 0 + b * 0 + c);
-                        println!("1={}", a * 1 * 1 + b * 1 + c);
-                        println!("2={}", a * 2 * 2 + b * 2 + c);
-                        println!("3={}", a * 3 * 3 + b * 3 + c);
-                        println!("4={}", a * 4 * 4 + b * 4 + c);
-                        println!("5={}", a * 5 * 5 + b * 5 + c);
-
-                        println!("(x-1)={}", a * (x - 1) * (x - 1) + b * (x - 1) + c);
-                        println!("x={}", a * x * x + b * x + c);
-                        println!("(x+1)={}", a * (x + 1) * (x + 1) + b * (x + 1) + c);
-                        return a * x * x + b * x + c;
-                    }
-                }
+                return a * x * x + b * x + c;
             }
+
+            prev_value = next_value;
+            prev_delta = next_delta;
+            prev_second_derivative = second_derivative;
         }
-        prev_day = next_day
+        prev_day = next_day;
     }
     prev_day.len() as u64
 }
