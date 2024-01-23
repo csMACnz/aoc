@@ -1,23 +1,47 @@
-use std::{collections::HashSet, fs};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct Tower {
-    bricks: Vec<Brick>,
+    bricks: HashMap<usize, Brick>,
 }
-
 
 impl Tower {
     fn brick_drop(self: &mut Self) -> Vec<usize> {
         let mut to_fall = Vec::new();
-        for (i, brick) in self.bricks.iter().enumerate() {
+
+        let mut sorted_bricks = self.bricks.iter().collect::<Vec<_>>();
+        sorted_bricks.sort_by_key(|(_,b)|b.end.2); //sorted by end (bigger Z value);
+        for index in 0..sorted_bricks.len() {
+            let (&i, brick) = sorted_bricks[index];
             let mut can_fall = true;
             'cube_check: for cube in brick.cubes() {
                 if cube.2 == 1 {
                     can_fall = false;
                     break;
                 }
-                for other_brick in self.bricks.iter() {
+                //check below, until too far below
+                for other_index in (0..index).rev() {
+                    let  (_, other_brick) = sorted_bricks[other_index];
                     if brick != other_brick {
+                        if other_brick.end.2 < brick.start.2-1 {
+                            break;
+                        }
+                        if other_brick.is_below_cube(&cube) {
+                            can_fall = false;
+                            break 'cube_check;
+                        }
+                    }
+                }
+                //check above, until too far above
+                for other_index in index+1..sorted_bricks.len() {
+                    let  (_, other_brick) = sorted_bricks[other_index];
+                    if brick != other_brick {
+                        if other_brick.end.2 > brick.start.2 {
+                            break;
+                        }
                         if other_brick.is_below_cube(&cube) {
                             can_fall = false;
                             break 'cube_check;
@@ -30,7 +54,7 @@ impl Tower {
             }
         }
         if !to_fall.is_empty() {
-            for (i, brick) in self.bricks.iter_mut().enumerate() {
+            for (i, brick) in self.bricks.iter_mut() {
                 if to_fall.contains(&i) {
                     brick.fall();
                 }
@@ -73,7 +97,7 @@ impl Tower {
 
     fn pull(&self, i: usize) -> Tower {
         let mut result = self.clone();
-        result.bricks.remove(i);
+        result.bricks.remove_entry(&i);
         result
     }
 }
@@ -81,7 +105,11 @@ impl Tower {
 impl From<String> for Tower {
     fn from(value: String) -> Self {
         Tower {
-            bricks: value.lines().map(|l| l.into()).collect(),
+            bricks: value
+                .lines()
+                .enumerate()
+                .map(|(i, l)| (i, l.into()))
+                .collect(),
         }
     }
 }
@@ -108,8 +136,8 @@ impl Brick {
     }
 
     fn is_below_cube(&self, cube: &(u64, u64, u64)) -> bool {
-        self.start.2 <= (cube.2 -1)
-            && self.end.2 >= (cube.2 -1)
+        self.start.2 <= (cube.2 - 1)
+            && self.end.2 >= (cube.2 - 1)
             && self.start.1 <= cube.1
             && self.end.1 >= cube.1
             && self.start.0 <= cube.0
