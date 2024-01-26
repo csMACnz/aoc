@@ -58,34 +58,26 @@ impl Point3dI64 {
             y: self.z,
         }
     }
-    fn part(&self, a: usize, b: usize) -> Point2dI64 {
-        match (a, b) {
-            (0, 1) => (self.xy()),
-            (1, 2) => (self.yz()),
-            (0, 2) => (self.xz()),
-            _ => panic!("not supported indexes"),
+    fn part(&self, split: Split2d) -> Point2dI64 {
+        match split {
+            Split2d::XY => (self.xy()),
+            Split2d::YZ => (self.yz()),
+            Split2d::XZ => (self.xz()),
         }
     }
-    fn at(&self, i: usize) -> i64 {
-        match i {
-            0 => self.x,
-            1 => self.y,
-            2 => self.z,
-            _ => panic!("not supported indexes"),
-        }
-    }
+}
+
+#[derive(Clone, Copy)]
+enum Split2d {
+    XY,
+    YZ,
+    XZ,
 }
 
 #[derive(Clone)]
 struct Stone {
     position: Point3dI64,
     velocity: Point3dI64,
-}
-
-impl Stone {
-    fn position_part(&self, a: usize, b: usize) -> Point2dI64 {
-        self.position.part(a, b)
-    }
 }
 
 // Returns 1 if the lines intersect, otherwise 0. In addition, if the lines
@@ -131,7 +123,8 @@ fn intersect(
     let p0 = first.0.as_f64();
     let p1 = second.0.as_f64();
     let v0 = first.1.as_f64();
-    if let Some((t1, t2)) = two_line_intersection(p0, v0, p1, second.1.as_f64()) {
+    let v1 = second.1.as_f64();
+    if let Some((t1, t2)) = two_line_intersection(p0, v0, p1, v1) {
         if t2 > EPSILON && t1 > EPSILON {
             let xf = p0.x + (t1 * v0.x);
             let yf = p0.y + (t1 * v0.y);
@@ -153,28 +146,24 @@ impl FromStr for Stone {
         let pos = three_split_num(pos);
         let vel = three_split_num(vel);
         Ok(Stone {
-            position: Point3dI64 {
-                x: pos.0,
-                y: pos.1,
-                z: pos.2,
-            },
-            velocity: Point3dI64 {
-                x: vel.0,
-                y: vel.1,
-                z: vel.2,
-            },
+            position: pos,
+            velocity: vel,
         })
     }
 }
 
-fn three_split_num(pos: &str) -> (i64, i64, i64) {
+fn three_split_num(pos: &str) -> Point3dI64 {
     let nums: [i64; 3] = pos
         .split(", ")
         .map(|s| s.trim().parse::<i64>().unwrap())
         .collect::<Vec<_>>()
         .try_into()
         .unwrap();
-    (nums[0], nums[1], nums[2])
+    Point3dI64 {
+        x: nums[0],
+        y: nums[1],
+        z: nums[2],
+    }
 }
 
 fn parse_file(path: &str) -> Vec<Stone> {
@@ -212,14 +201,14 @@ fn part_1(path: &str, test_area_min: i64, test_area_max: i64) -> u64 {
 
 fn test(
     stones: &Vec<Stone>,
-    x_index: usize,
-    y_index: usize,
+    split: Split2d,
     search_range: (i64, i64),
 ) -> Option<(Point2dI64, Point2dI64)> {
     let min = stones.len().min(10);
     for wx in search_range.0..=search_range.1 {
         'find_w: for wy in search_range.0..=search_range.1 {
             if wy == 0 && wx == 0 {
+                // not sure this case matters...
                 continue;
             }
             //p[i] + (v[i]-w)*t[i] = p[j] + (v[j]-w)*t[j]
@@ -228,19 +217,12 @@ fn test(
             let mut verify = HashSet::new();
             for i in 0..stones.len() {
                 let a = &stones[i];
-                let first = (
-                    a.position_part(x_index, y_index),
-                    a.velocity.part(x_index, y_index) - w,
-                );
+                let first = (a.position.part(split), a.velocity.part(split) - w);
                 for j in (i + 1)..stones.len() {
                     let b = &stones[j];
-                    if let Some(r) = intersect(
-                        first,
-                        (
-                            b.position_part(x_index, y_index),
-                            b.velocity.part(x_index, y_index) - w,
-                        ),
-                    ) {
+                    if let Some(r) =
+                        intersect(first, (b.position.part(split), b.velocity.part(split) - w))
+                    {
                         verify.insert(r);
                         count += 1;
                         if count > min {
@@ -269,15 +251,15 @@ fn part_2(path: &str, search_magnitude: i64) -> u64 {
     // p[i] + (v[i]-w)*t[i] = p[j] + (v[j]-w)*t[j] intersect at r, if at all. | we can try diffferent w values and solve for t[i]/t[j] using itersection detection
 
     let search_range = (-search_magnitude, search_magnitude);
-    let xy = test(&stones, 0, 1, search_range).unwrap();
-    let xz = test(&stones, 0, 2, search_range).unwrap();
-    let yz = test(&stones, 1, 2, search_range).unwrap();
+    let xy = test(&stones, Split2d::XY, search_range).unwrap();
+    let xz = test(&stones, Split2d::XZ, search_range).unwrap();
+    let yz = test(&stones, Split2d::YZ, search_range).unwrap();
 
-    assert_eq!(xy.0 .x, xz.0 .x);
-    assert_eq!(xy.0 .y, yz.0 .x);
-    assert_eq!(xz.0 .y, yz.0 .y);
+    assert_eq!(xy.0.x, xz.0.x);
+    assert_eq!(xy.0.y, yz.0.x);
+    assert_eq!(xz.0.y, yz.0.y);
 
-    (xy.0 .x + xy.0 .y + yz.0 .y) as u64
+    (xy.0.x + xy.0.y + yz.0.y) as u64
 }
 
 fn main() {
