@@ -2,8 +2,9 @@
 using System.Linq;
 
 Console.WriteLine("Hello, World!");
-
 var lines = File.ReadLines("puzzle.txt");
+var watch = System.Diagnostics.Stopwatch.StartNew();
+
 var leftList = new List<int>();
 var rightList = new List<int>();
 foreach (var line in lines)
@@ -17,20 +18,79 @@ foreach (var line in lines)
 leftList.Sort();
 rightList.Sort();
 
-var result1 = leftList.Zip(rightList).Select(((int l, int r) x) => Math.Abs(x.l - x.r)).Sum();
+var result1a = leftList.Zip(rightList).Select(((int l, int r) x) => Math.Abs(x.l - x.r)).Sum();
 
-Console.WriteLine($"part 1 is: {result1}");
+Console.WriteLine($"part 1 is: {result1a}");
 
 // Part 2
 var memo = new Dictionary<int, int>();
-var result2 = 0;
+var result2a = 0;
 foreach (var number in leftList)
 {
     if (!memo.ContainsKey(number))
     {
         memo[number] = number * rightList.Count(b => b == number);
     }
-    result2 += memo[number];
+    result2a += memo[number];
 }
 
-Console.WriteLine($"part 2 is: {result2}");
+Console.WriteLine($"part 2 is: {result2a}");
+// the code that you want to measure comes here
+watch.Stop();
+Console.WriteLine($"first attempt: {watch.ElapsedMilliseconds}ms");
+
+
+watch.Restart();
+
+var left = new SortedList<int, int>();
+var right = new SortedList<int, int>();
+foreach (var line in lines)
+{
+    var l = line.Split("   ");
+    var a = int.Parse(l[0]);
+    var b = int.Parse(l[1]);
+    AddorIncrement(left, a);
+    AddorIncrement(right, b);
+}
+
+var result1b = Iterate(left).Zip(Iterate(right)).Select(((int l, int r) x) => Math.Abs(x.l - x.r)).Sum();
+
+Console.WriteLine($"part 1 is: {result1b}");
+
+// Part 2
+var result2b = 0;
+foreach (var kvp in left)
+{
+    if (right.TryGetValue(kvp.Key, out var rhs))
+    {
+        result2b += kvp.Value * kvp.Key * rhs;
+    }
+}
+
+Console.WriteLine($"part 2 is: {result2b}");
+// the code that you want to measure comes here
+watch.Stop();
+Console.WriteLine($"first attempt: {watch.ElapsedMilliseconds}ms");
+
+static IEnumerable<int> Iterate(SortedList<int, int> data)
+{
+    foreach (var kvp in data)
+    {
+        for (var i = 0; i < kvp.Value; i++)
+        {
+            yield return kvp.Key;
+        }
+    }
+}
+
+static void AddorIncrement(SortedList<int, int> data, int value)
+{
+    if (!data.ContainsKey(value))
+    {
+        data[value] = 1;
+    }
+    else
+    {
+        data[value]++;
+    }
+}
