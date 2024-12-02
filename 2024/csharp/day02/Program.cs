@@ -62,23 +62,21 @@ Console.WriteLine($"part 2: {count}");
 
 bool growingCheck(int[] nums)
 {
-    for (var i = 0; i < nums.Length - 1; i++)
-    {
-        var a = nums[i];
-        var b = nums[i + 1];
-        if (a >= b || b - a > 3) return false;
-    }
-    return true;
+    return Pairs(nums).All(x => x.a < x.b && x.b - x.a <= 3);
 }
 
 
 bool shrinkingCheck(int[] nums)
 {
+    return Pairs(nums).All(x => x.a > x.b && x.a - x.b <= 3);
+}
+
+IEnumerable<(int a, int b)> Pairs(int[] nums)
+{
     for (var i = 0; i < nums.Length - 1; i++)
     {
         var a = nums[i];
         var b = nums[i + 1];
-        if (a <= b || a - b > 3) return false;
+        yield return (a, b);
     }
-    return true;
 }
