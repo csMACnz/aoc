@@ -9,12 +9,7 @@ foreach (var line in lines)
 {
     var nums = line.Split(' ').Select(n => int.Parse(n)).ToArray();
     var first = nums[0];
-    var matches = nums[1] switch
-    {
-        var x when x > first => growingCheck(nums),
-        var y when y < first => shrinkingCheck(nums),
-        _ => false
-    };
+    var matches = growingCheck(nums, []) || shrinkingCheck(nums, []);
     if (matches)
     {
         count++;
@@ -30,22 +25,18 @@ foreach (var line in lines)
     var first = nums[0];
     var matches = nums[1] switch
     {
-        var x when x > first => growingCheck(nums),
-        var y when y < first => shrinkingCheck(nums),
+        var x when x > first => growingCheck(nums, []),
+        var y when y < first => shrinkingCheck(nums, []),
         _ => false
     };
     if (!matches)
     {
         for (var i = 0; i < nums.Length; i++)
         {
-            var newN = nums.Take(i).Concat(nums.Skip(i + 1).Take(nums.Length - (i + 1))).ToArray();
-            first = newN[0];
-            matches = newN[1] switch
-            {
-                var x when x > first => growingCheck(newN),
-                var y when y < first => shrinkingCheck(newN),
-                _ => false
-            };
+            var lhs = nums[0..i];
+            var rhs = nums[(i + 1)..];
+
+            matches = growingCheck(lhs, rhs) || shrinkingCheck(lhs, rhs);
             if (matches)
             {
                 break;
@@ -60,23 +51,48 @@ foreach (var line in lines)
 
 Console.WriteLine($"part 2: {count}");
 
-bool growingCheck(int[] nums)
+bool growingCheck(Span<int> nums, Span<int> moreNums)
 {
-    return Pairs(nums).All(x => x.a < x.b && x.b - x.a <= 3);
+    return AllPairs(nums, moreNums, (a, b) => a < b && b - a <= 3);
 }
 
 
-bool shrinkingCheck(int[] nums)
+bool shrinkingCheck(Span<int> nums, Span<int> moreNums)
 {
-    return Pairs(nums).All(x => x.a > x.b && x.a - x.b <= 3);
+    return AllPairs(nums, moreNums, (a, b) => a > b && a - b <= 3);
 }
 
-IEnumerable<(int a, int b)> Pairs(int[] nums)
+bool AllPairs(Span<int> nums, Span<int> moreNums, Func<int, int, bool> check)
 {
-    for (var i = 0; i < nums.Length - 1; i++)
+    var iter = nums.GetEnumerator();
+    int? prev = null;
+    if (iter.MoveNext())
     {
-        var a = nums[i];
-        var b = nums[i + 1];
-        yield return (a, b);
+        prev = iter.Current;
+        while (iter.MoveNext())
+        {
+            var curr = iter.Current;
+            if (!check(prev.Value, curr))
+            {
+                return false;
+            }
+            prev = curr;
+        }
     }
+    iter = moreNums.GetEnumerator();
+    if (prev is null)
+    {
+        iter.MoveNext();
+        prev = iter.Current;
+    }
+    while (iter.MoveNext())
+    {
+        var curr = iter.Current;
+        if (!check(prev.Value, curr))
+        {
+            return false;
+        }
+        prev = curr;
+    }
+    return true;
 }
