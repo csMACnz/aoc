@@ -7,4 +7,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="benchmarkdotnet" Version="0.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="sample.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="puzzle.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
