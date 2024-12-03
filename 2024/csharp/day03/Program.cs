@@ -16,13 +16,13 @@ public partial class Day3
     [Benchmark]
     public void Part1()
     {
-        new Day3().Run(true);
+        Run(true);
     }
 
     [Benchmark]
     public void Part2()
     {
-        new Day3().Run(false);
+        Run(false);
     }
 
 
@@ -57,19 +57,19 @@ public partial class Day3
         Console.WriteLine($"part2 (regex): {result}");
     }
 
-    private void Run(bool part1)
+    private static void Run(bool part1)
     {
-
-        var lines = File.ReadAllLines("puzzle.txt");
-
         var result = 0;
         var state = State.Do;
-        foreach (var line in lines)
+        int? a = null, b = null;
+        using StreamReader r = new("puzzle.txt");
+        char[] buffer = new char[1024];
+        int read;
+        while ((read = r.ReadBlock(buffer, 0, buffer.Length)) > 0)
         {
-            int? a = null, b = null;
-            foreach (var c in line)
+            for (int i = 0; i < read; i++)
             {
-                (state, a, b) = (state, c) switch
+                (state, a, b) = (state, buffer[i]) switch
                 {
                     (State.Do, 'd') => ((State)State.D, (int?)null, (int?)null),
                     (State.D, 'o') => (State.O, null, null),
@@ -113,8 +113,8 @@ public partial class Day3
             }
         }
         Console.WriteLine($"part {(part1 ? 1 : 2)}: {result}");
-
     }
+
     public enum State
     {
         Do,
