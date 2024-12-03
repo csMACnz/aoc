@@ -1,4 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 
@@ -25,7 +27,7 @@ public class Day02
             }
         }
 
-        // Console.WriteLine($"part 1: {count}");
+        Console.WriteLine($"part 1: {count}");
     }
 
     [Benchmark]
@@ -58,7 +60,7 @@ public class Day02
             }
         }
 
-        // Console.WriteLine($"part 2: {count}");
+        Console.WriteLine($"part 2: {count}");
     }
 
     private static Span<int> ParseLevels(ReadOnlySpan<char> line)
@@ -67,7 +69,7 @@ public class Day02
         var count = 0;
         foreach (var number in line.Split(' '))
         {
-            results[count] =int.Parse(line[number]);
+            results[count] = int.Parse(line[number]);
             count++;
         }
         return results.AsSpan()[..count];
@@ -117,5 +119,37 @@ public class Day02
             prev = curr;
         }
         return true;
+    }
+
+    private bool RuleCheck(IEnumerable<int> reports, int skip = -1)
+    {
+        int? prev = null;
+        bool? ascending = null;
+        bool isUnsafe = false;
+        foreach (var (item, index) in reports.Where((x, i) => i != skip).Index())
+        {
+            (prev, ascending, isUnsafe) = (ascending, prev, item) switch
+            {
+                (_, int previous, int current) when previous == current => ((int?)current, (bool?)null, (bool)true),
+                (true, int previous, int current) => (current, true, IsDescending(previous, current) || current - previous <= 3),
+                (false, int previous, int current) => (current, false, IsAscending(previous, current) || previous - current <= 3),
+                (null, int previous, int current) => (current, IsAscending(previous, current), false),
+                (null, _, var current) => (current, null, false),
+                (not null, null, _)=> throw new UnreachableException()
+            };
+            if(isUnsafe)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool IsDescending(int first, int second){
+        return second < first;
+    }
+
+    private static bool IsAscending(int first, int second){
+        return second > first;
     }
 }
