@@ -4,7 +4,8 @@ using System.Diagnostics;
 Console.WriteLine("Hello, World!");
 
 var grid = new Grid("puzzle.txt");
-Console.WriteLine(grid.Part1());
+Console.WriteLine($"Part1: {grid.Part1()}");
+Console.WriteLine($"Part2: {grid.Part2()}");
 
 public class Grid
 {
@@ -61,6 +62,29 @@ public class Grid
                         {
                             result++;
                         }
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+
+
+    internal int Part2()
+    {
+        var result = 0;
+        foreach (var col in Enumerable.Range(0, _col))
+        {
+            foreach (var row in Enumerable.Range(0, _row))
+            {
+                if (Get(row, col) == Letter.A)
+                {
+                    if ((((Get(row - 1, col - 1) == Letter.M) && Get(row + 1, col + 1) == Letter.S) || ((Get(row - 1, col - 1) == Letter.S) && Get(row + 1, col + 1) == Letter.M)) &&
+                       (((Get(row - 1, col + 1) == Letter.M) && Get(row + 1, col - 1) == Letter.S) || ((Get(row - 1, col + 1) == Letter.S) && Get(row + 1, col - 1) == Letter.M)))
+                    {
+                        result++;
+
                     }
                 }
             }
