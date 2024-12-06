@@ -7,4 +7,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="benchmarkdotnet" Version="0.14.0" />
+    <PackageReference Include="Dumpify" Version="0.6.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="sample.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="puzzle.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
