@@ -13,6 +13,9 @@ Console.WriteLine("part 2: " + new BruteForce().Part2("puzzle.txt"));
 Console.WriteLine("part 1: " + new Sort().Part1("puzzle.txt"));
 Console.WriteLine("part 2: " + new Sort().Part2("puzzle.txt"));
 
+Console.WriteLine("part 1: " + new SortOptimised().Part1("puzzle.txt"));
+Console.WriteLine("part 2: " + new SortOptimised().Part2("puzzle.txt"));
+
 [MemoryDiagnoser]
 public class Day05Benchmarks
 {
@@ -38,5 +41,17 @@ public class Day05Benchmarks
     public void SortPart2()
     {
         new Sort().Part2("puzzle.txt");
+    }
+
+    [Benchmark]
+    public void SortSpanOptimisedPart1()
+    {
+        new SortOptimised().Part1("puzzle.txt");
+    }
+
+    [Benchmark]
+    public void SortSpanOptimisedPart2()
+    {
+        new SortOptimised().Part2("puzzle.txt");
     }
 }
