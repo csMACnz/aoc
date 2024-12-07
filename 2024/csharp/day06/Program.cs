@@ -4,6 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 Console.WriteLine("Hello, World!");
 
 Console.WriteLine("Part1: " + new Grid("puzzle.txt").Part1());
+Console.WriteLine("Part2: " + new Grid("puzzle.txt").Part2());
 
 public class Grid
 {
@@ -52,5 +53,46 @@ public class Grid
             pos = nextPos;
         }
         return visited.Count;
+    }
+
+    public int Part2()
+    {
+        var count = 0;
+        foreach (var rowTest in Enumerable.Range(0, _rowCount))
+        {
+            foreach (var colTest in Enumerable.Range(0, _colCount))
+            {
+                if (_start == (rowTest, colTest) || _obsticles.Contains((rowTest, colTest)))
+                {
+                    continue;
+                }
+                var newObsticles = _obsticles.Concat([(rowTest, colTest)]).ToHashSet();
+                HashSet<((int, int), (int, int))> visited = [];
+                var pos = _start;
+                var dir = (-1, 0);
+                var stuck = false;
+                while (pos.rowIndex >= 0 && pos.rowIndex < _rowCount && pos.colIndex >= 0 && pos.colIndex < _colCount)
+                {
+                    if (visited.Contains((pos, dir)))
+                    {
+                        stuck = true;
+                        break;
+                    }
+                    visited.Add((pos, dir));
+                    var nextPos = (pos.rowIndex + dir.Item1, pos.colIndex + dir.Item2);
+                    if (newObsticles.Contains(nextPos))
+                    {
+                        dir = (dir.Item2, -dir.Item1);
+                        nextPos = (pos.rowIndex + dir.Item1, pos.colIndex + dir.Item2);
+                    }
+                    pos = nextPos;
+                }
+                if (stuck)
+                {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 }
