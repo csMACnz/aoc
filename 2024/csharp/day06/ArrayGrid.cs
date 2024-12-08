@@ -112,6 +112,44 @@ public class ArrayGrid
         return count;
     }
 
+
+    public int Part2Parallel()
+    {
+        return ResolveExitPath(_dimensions, _start, ((int, int))(-1, 0), _grid).AsParallel().Select(pathPos =>
+        {
+            if (_start == pathPos)
+            {
+                return 0;
+            }
+            HashSet<((int, int), (int, int))> visited = [];
+            var pos = _start;
+            var dir = (-1, 0);
+            while (true)
+            {
+                if (visited.Contains((pos, dir)))
+                {
+                    return 1;
+                }
+                visited.Add((pos, dir));
+                var nextPos = (rowIndex: pos.rowIndex + dir.Item1, colIndex: pos.colIndex + dir.Item2);
+                if (nextPos.rowIndex < 0 || nextPos.rowIndex >= _dimensions.rowCount || nextPos.colIndex < 0 || nextPos.colIndex >= _dimensions.colCount)
+                {
+                    break;
+                }
+                if (_grid[nextPos.rowIndex][nextPos.colIndex] || nextPos == pathPos)
+                {
+                    dir = (dir.Item2, -dir.Item1);
+                }
+                else
+                {
+                    pos = nextPos;
+                }
+            }
+            return 0;
+
+        }).Sum();
+    }
+
     private static HashSet<(int, int)> ResolveExitPath((int rowCount, int colCount) dimensions, (int rowIndex, int colIndex) pos, (int rowOffset, int colOffset) dir, bool[][] grid)
     {
         HashSet<(int, int)> visited = [];

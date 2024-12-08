@@ -14,6 +14,7 @@ Console.WriteLine("HashGrid Part2 (Faster): " + new HashGrid("puzzle.txt").Part2
 Console.WriteLine("ArrayGrid Part1: " + new ArrayGrid("puzzle.txt").Part1());
 Console.WriteLine("ArrayGrid Part2 (First): " + new ArrayGrid("puzzle.txt").Part2First());
 Console.WriteLine("ArrayGrid Part2 (Faster): " + new ArrayGrid("puzzle.txt").Part2Faster());
+Console.WriteLine("ArrayGrid Part2 (Paralle): " + new ArrayGrid("puzzle.txt").Part2Parallel());
 
 [MemoryDiagnoser]
 public class Day06
@@ -47,5 +48,11 @@ public class Day06
     public void ArrayGridPart2Faster()
     {
         new ArrayGrid("puzzle.txt").Part2Faster();
+    }
+
+    [Benchmark]
+    public void ArrayGridPart2Parallel()
+    {
+        new ArrayGrid("puzzle.txt").Part2Parallel();
     }
 }
