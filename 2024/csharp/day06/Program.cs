@@ -83,9 +83,11 @@ public class Grid
                     if (newObsticles.Contains(nextPos))
                     {
                         dir = (dir.Item2, -dir.Item1);
-                        nextPos = (pos.rowIndex + dir.Item1, pos.colIndex + dir.Item2);
                     }
-                    pos = nextPos;
+                    else
+                    {
+                        pos = nextPos;
+                    }
                 }
                 if (stuck)
                 {
