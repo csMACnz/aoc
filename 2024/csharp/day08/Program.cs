@@ -29,31 +29,42 @@ foreach (var (rowIndex, line) in lines.Index())
     }
 }
 
-var resultsGrid = new int[lines.Length, lines[0].Length];
-// foreach (var i in Enumerable.Range(0, lines.Length))
-// {
-//     resultsGrid[i] = new int[lines[0].Length];
-// }
+var part1Grid = new int[lines.Length, lines[0].Length];
+var part2Grid = new int[lines.Length, lines[0].Length];
 
 foreach (var list in data)
 {
     foreach (var (rowIndex, point1) in list.Index())
     {
+        part2Grid[point1.row, point1.col] = 1;
         foreach (var point2 in list.Skip(rowIndex + 1))
         {
+            part2Grid[point2.row, point2.col] = 1;
             var rDiff = point1.row - point2.row;
             var cDiff = point1.col - point2.col;
             var test = (row: point1.row + rDiff, col: point1.col + cDiff);
-            if (test.row >= 0 && test.row < lines.Length && test.col >= 0 && test.col < lines[0].Length)
+            var part1Stored = false;
+            while (test.row >= 0 && test.row < lines.Length && test.col >= 0 && test.col < lines[0].Length)
             {
-                resultsGrid[test.row, test.col] = 1;
-                // test = (row: test.row + rDiff, col: test.col + cDiff);
+                if (!part1Stored)
+                {
+                    part1Stored = true;
+                    part1Grid[test.row, test.col] = 1;
+                }
+                part2Grid[test.row, test.col] = 1;
+                test = (row: test.row + rDiff, col: test.col + cDiff);
             }
+            part1Stored = false;
             test = (row: point2.row - rDiff, col: point2.col - cDiff);
-            if (test.row >= 0 && test.row < lines.Length && test.col >= 0 && test.col < lines[0].Length)
+            while (test.row >= 0 && test.row < lines.Length && test.col >= 0 && test.col < lines[0].Length)
             {
-                resultsGrid[test.row, test.col] = 1;
-                // test = (row: test.row - rDiff, col: test.col - cDiff);
+                if (!part1Stored)
+                {
+                    part1Stored = true;
+                    part1Grid[test.row, test.col] = 1;
+                }
+                part2Grid[test.row, test.col] = 1;
+                test = (row: test.row - rDiff, col: test.col - cDiff);
             }
         }
     }
@@ -62,9 +73,16 @@ foreach (var list in data)
 // resultsGrid.Dump();
 var part1Result = (
         from int val
-        in resultsGrid
+        in part1Grid
+        select val)
+    .Sum();
+
+var part2Result = (
+        from int val
+        in part2Grid
         select val)
     .Sum();
 
 
 Console.WriteLine("Part1: " + part1Result);
+Console.WriteLine("Part2: " + part2Result);
