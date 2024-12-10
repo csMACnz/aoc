@@ -10,6 +10,7 @@ Console.WriteLine("Hello, World!");
 
 var lines = File.ReadAllLines("puzzle.txt");
 var stack = new Stack<(int startRow, int startCol, int row, int col, byte value, FromDirection direction)>();
+Dictionary<(int row, int col), int> part2 = [];
 var grid = new byte[lines.Length, lines[0].Length];
 foreach (var (row, line) in lines.Index())
 {
@@ -18,6 +19,7 @@ foreach (var (row, line) in lines.Index())
         var digit = byte.Parse(ch.ToString());
         if (digit == 0)
         {
+            part2[(row, col)] = 0;
             stack.Push((row, col, row, col, digit, FromDirection.None));
         }
         grid[row, col] = digit;
@@ -29,6 +31,7 @@ while (stack.TryPop(out var current))
 {
     if (current.value == 9)
     {
+        part2[(current.startRow, current.startCol)]++;
         results.Add((current.startRow, current.startCol, current.row, current.col));
     }
     else
@@ -48,6 +51,7 @@ while (stack.TryPop(out var current))
     }
 }
 Console.WriteLine($"Part1: {results.Count}");
+Console.WriteLine($"Part2: {part2.Values.Sum()}");
 
 public enum FromDirection
 {
