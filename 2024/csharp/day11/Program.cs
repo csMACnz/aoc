@@ -99,8 +99,8 @@ public class Day11
             (1, var x) when $"{x}".Length % 2 == 0 => 2,
             (1, _) => 1,
             (_, 0) => LongHowMany(cache, 1, repeats - 1),
-            (_, var x) when x.ToString() is string str && str.Length % 2 == 0
-                => LongHowMany(cache, long.Parse(str[..(str.Length / 2)]), repeats - 1) + LongHowMany(cache, long.Parse(str[(str.Length / 2)..]), repeats - 1),
+            (_, var x) when IsSplitEven(x, out var lhs, out var rhs)
+                => LongHowMany(cache, lhs, repeats - 1) + LongHowMany(cache, rhs, repeats - 1),
             _ => LongHowMany(cache, value * 2024, repeats - 1)
         };
         cache[(value, repeats)] = result;
@@ -116,11 +116,40 @@ public class Day11
             (1, var x) when $"{x}".Length % 2 == 0 => 2,
             (1, _) => 1,
             (_, var z) when z == BigInteger.Zero => BigIntHowMany(cache, 1, repeats - 1),
-            (_, var x) when x.ToString() is string str && str.Length % 2 == 0
-                => BigIntHowMany(cache, BigInteger.Parse(str[..(str.Length / 2)]), repeats - 1) + BigIntHowMany(cache, BigInteger.Parse(str[(str.Length / 2)..]), repeats - 1),
+            (_, var x) when IsSplitEven(x, out var lhs, out var rhs)
+                => BigIntHowMany(cache, lhs, repeats - 1) + BigIntHowMany(cache, rhs, repeats - 1),
             _ => BigIntHowMany(cache, value * 2024, repeats - 1)
         };
         cache[(value, repeats)] = result;
         return result;
+    }
+
+    private static bool IsSplitEven(long input, out long lhs, out long rhs)
+    {
+        if (input.ToString() is string str && str.Length % 2 == 0)
+        {
+            lhs = long.Parse(str[..(str.Length / 2)]);
+            rhs = long.Parse(str[(str.Length / 2)..]);
+            return true;
+        }
+        else
+        {
+            lhs = rhs = 0;
+            return false;
+        }
+    }
+    private static bool IsSplitEven(BigInteger input, out BigInteger lhs, out BigInteger rhs)
+    {
+        if (input.ToString() is string str && str.Length % 2 == 0)
+        {
+            lhs = BigInteger.Parse(str[..(str.Length / 2)]);
+            rhs = BigInteger.Parse(str[(str.Length / 2)..]);
+            return true;
+        }
+        else
+        {
+            lhs = rhs = 0;
+            return false;
+        }
     }
 }
