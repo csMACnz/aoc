@@ -11,7 +11,7 @@ Console.WriteLine("Hello, World!");
 
 var input = File.ReadAllText("puzzle.txt").Split().Select(BigInteger.Parse).ToArray();
 
-BenchmarkRunner.Run<Day11>();
+// BenchmarkRunner.Run<Day11>();
 
 Console.WriteLine("Part1(long): " + new Day11().Part1Long());
 
@@ -22,6 +22,8 @@ Console.WriteLine("99(long)=>" + new Day11().NinetyNineLong());
 Console.WriteLine("Part1(BigInt): " + new Day11().Part1BigInt());
 
 Console.WriteLine("Part2(BigInt): " + new Day11().Part2BigInt());
+
+Console.WriteLine("97(BigInt)=>" + new Day11().NinetySevenBigInt());
 
 Console.WriteLine("99(BigInt)=>" + new Day11().NinetyNineBigInt());
 
@@ -59,6 +61,13 @@ public class Day11
     {
         return LongSolve("puzzle.txt", 99);
     }
+
+    [Benchmark]
+    public BigInteger NinetySevenBigInt()
+    {
+        return BigIntegerSolve("puzzle.txt", 97);
+    }
+
 
     [Benchmark]
     public BigInteger NinetyNineBigInt()
