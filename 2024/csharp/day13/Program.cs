@@ -17,37 +17,50 @@ foreach (var machine in machines)
 {
     var bCount = machine.Prize.X / machine.B.X;
     var aRemainder = machine.Prize.X % machine.B.X;
-    if (bCount > 100)
-    {
-        bCount = 100;
-        aRemainder = machine.Prize.X - 100 * machine.B.X;
-    }
     while (bCount >= 0 && aRemainder <= machine.Prize.X && aRemainder % machine.A.X != 0)
     {
         aRemainder += machine.B.X;
         bCount--;
     }
-    var aCount = aRemainder / machine.A.X;
-    while (aCount <= 100 && bCount >= 0 && aRemainder <= machine.Prize.X && (machine.A.X * aCount + machine.B.X * bCount != machine.Prize.X || machine.A.Y * aCount + machine.B.Y * bCount != machine.Prize.Y))
+    var additionalACount = aRemainder / machine.A.X;
+    var newPrizeX = machine.Prize.X - aRemainder;
+    var newPrizeY = machine.Prize.Y - (additionalACount * machine.A.Y);
+    var aCount = newPrizeX / machine.A.X;
+    var lcm = LCM(machine.A.X, machine.B.X);
+    var aDelta = lcm / machine.A.X;
+    var bDelta = lcm / machine.B.X;
+    while (bCount >= 0 && (machine.A.X * aCount + machine.B.X * bCount != newPrizeX || machine.A.Y * aCount + machine.B.Y * bCount != newPrizeY))
     {
-        Console.WriteLine(aCount + " " + bCount);
-        do
-        {
-            aRemainder += machine.B.X;
-            bCount--;
-        } while (bCount >= 0 && aRemainder <= machine.Prize.X && aRemainder % machine.A.X != 0);
-        aCount = aRemainder / machine.A.X;
+        aCount += aDelta;
+        bCount -= bDelta;
     }
-    if (machine.A.X * aCount + machine.B.X * bCount != machine.Prize.X || machine.A.Y * aCount + machine.B.Y * bCount != machine.Prize.Y)
+    if (bCount < 0)
     {
         Console.WriteLine("Fail: " + aCount + " " + bCount);
         continue;
     }
     Console.WriteLine("partial: " + aCount + " " + bCount);
-    result += aCount * 3 + bCount;
+    result += (aCount +additionalACount) * 3 + bCount;
 }
 
 Console.WriteLine("Part1: " + result);
+
+static int GCF(int a, int b)
+{
+    while (b != 0)
+    {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+static int LCM(int a, int b)
+{
+    return (a / GCF(a, b)) * b;
+}
+
 record struct Button(int X, int Y);
 record struct Prize(int X, int Y);
 record struct Machine(Button A, Button B, Prize Prize);
