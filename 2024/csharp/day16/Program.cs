@@ -23,60 +23,77 @@ foreach (var (row, line) in lines.Index())
         }
     }
 }
-var q = new PriorityQueue<(long score, Facing dir, int x, int y), long>();
-q.Enqueue((0, Facing.East, start.row, start.col), 0);
-var seen = new HashSet<(int row, int col, Facing)>();
+var q = new PriorityQueue<Node, long>();
+q.Enqueue(new Node(null, 0, Facing.East, start.row, start.col), 0);
+var best = new List<Node>();
+var seen = new Dictionary<(int row, int col, Facing dir), int>();
 while (q.Count > 0)
 {
-    var (score, dir, row, col) = q.Dequeue();
-    var inWall = grid[row, col];
+    var head = q.Dequeue();
+    if (best.Count > 0 && head.Score > best[0].Score) break;
+    var inWall = grid[head.Row, head.Col];
     if (inWall) continue;
-    if (seen.Contains((row, col, dir))) continue;
-    seen.Add((row, col, dir));
-    if (end.row == row && end.col == col)
+    if (seen.TryGetValue((head.Row, head.Col, head.Direction), out var score) && score < head.Score)
     {
-        Console.WriteLine("Part1: " + score);
-        break;
+        continue;
     }
-    if (dir == Facing.East)
+    seen[(head.Row, head.Col, head.Direction)] = head.Score;
+    if (end.row == head.Row && end.col == head.Col)
     {
-        q.Enqueue((score + 1, Facing.East, row, col + 1), score + 1);
+        best.Add(head);
+        continue;
+    }
+    if (head.Direction == Facing.East)
+    {
+        q.Enqueue(new Node(head, head.Score + 1, Facing.East, head.Row, head.Col + 1), head.Score + 1);
+    }
+    else
+    {
+        q.Enqueue(new Node(head, head.Score + 1000, Facing.East, head.Row, head.Col), head.Score + 1000);
+    }
+    if (head.Direction == Facing.West)
+    {
+        q.Enqueue(new Node(head, head.Score + 1, Facing.West, head.Row, head.Col - 1), head.Score + 1);
 
     }
     else
     {
-        q.Enqueue((score + 1000, Facing.East, row, col), score + 1000);
+        q.Enqueue(new Node(head, head.Score + 1000, Facing.West, head.Row, head.Col), head.Score + 1000);
+
     }
-    if (dir == Facing.West)
+    if (head.Direction == Facing.North)
     {
-        q.Enqueue((score + 1, Facing.West, row, col - 1), score + 1);
+        q.Enqueue(new Node(head, head.Score + 1, Facing.North, head.Row - 1, head.Col), head.Score + 1);
 
     }
     else
     {
-        q.Enqueue((score + 1000, Facing.West, row, col), score + 1000);
+        q.Enqueue(new Node(head, head.Score + 1000, Facing.North, head.Row, head.Col), head.Score + 1000);
 
     }
-    if (dir == Facing.North)
+    if (head.Direction == Facing.South)
     {
-        q.Enqueue((score + 1, Facing.North, row - 1, col), score + 1);
-
-    }
-    else
-    {
-        q.Enqueue((score + 1000, Facing.North, row, col), score + 1000);
-
-    }
-    if (dir == Facing.South)
-    {
-        q.Enqueue((score + 1, Facing.South, row + 1, col), score + 1);
+        q.Enqueue(new Node(head, head.Score + 1, Facing.South, head.Row + 1, head.Col), head.Score + 1);
 
     }
     else
     {
-        q.Enqueue((score + 1000, Facing.South, row, col), score + 1000);
+        q.Enqueue(new Node(head, head.Score + 1000, Facing.South, head.Row, head.Col), head.Score + 1000);
     }
 }
+
+Console.WriteLine("Part1: " + best[0].Score);
+var unique = new HashSet<(int row, int col)>(best.Select(x => (x.Row, x.Col)));
+foreach (var h in best)
+{
+    var head = h;
+    while (head != null)
+    {
+        unique.Add((head.Row, head.Col));
+        head = head.Previous;
+    }
+}
+Console.WriteLine("Part2: " + unique.Count);
 
 enum Facing
 {
@@ -84,4 +101,8 @@ enum Facing
     North,
     West,
     South
+}
+
+record Node(Node? Previous, int Score, Facing Direction, int Row, int Col)
+{
 }
