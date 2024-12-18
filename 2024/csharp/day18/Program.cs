@@ -1,4 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Runtime.InteropServices;
+
 Console.WriteLine("Hello, World!");
 
 var input = "puzzle.txt";
@@ -16,31 +18,39 @@ var fallData = File.ReadLines(input).Select(l =>
 }).ToList();
 var fallDataHash = fallData.Take(part1Limit).ToHashSet();
 
-var queue = new Queue<((int X, int Y) pos, int score)>();
-queue.Enqueue(((0, 0), 0));
-var seen = new HashSet<(int x, int y)>();
-while (queue.TryDequeue(out var item))
+var result = FindExit(dim, fallDataHash);
+
+Console.WriteLine($"Part1: {result.Value.score}");
+
+static ((int X, int Y) pos, int score)? FindExit(int dim, HashSet<(int x, int y)> falldata)
 {
-    if (seen.Contains(item.pos)) continue;
-    seen.Add(item.pos);
-    if (item.pos == (dim-1, dim-1))
+    var queue = new Queue<((int X, int Y) pos, int score)>();
+    queue.Enqueue(((0, 0), 0));
+    var seen = new HashSet<(int x, int y)>();
+    while (queue.TryDequeue(out var item))
     {
-        // at end
-        Console.WriteLine($"Part1: {item.score}");
-        break;
+        if (seen.Contains(item.pos)) continue;
+        seen.Add(item.pos);
+        if (item.pos == (dim - 1, dim - 1))
+        {
+            // at end
+            return item;
+        }
+        if (item.pos.X < 0 || item.pos.X >= dim || item.pos.Y < 0 || item.pos.Y >= dim)
+        {
+            // out of bounds
+            continue;
+        }
+        if (falldata.Contains(item.pos))
+        {
+            // blocked by rock
+            continue;
+        }
+        queue.Enqueue(((item.pos.X + 1, item.pos.Y), item.score + 1));
+        queue.Enqueue(((item.pos.X - 1, item.pos.Y), item.score + 1));
+        queue.Enqueue(((item.pos.X, item.pos.Y + 1), item.score + 1));
+        queue.Enqueue(((item.pos.X, item.pos.Y - 1), item.score + 1));
     }
-    if (item.pos.X < 0 || item.pos.X >= dim || item.pos.Y < 0 || item.pos.Y >= dim)
-    {
-        // out of bounds
-        continue;
-    }
-    if (fallDataHash.Contains(item.pos))
-    {
-        // blocked by rock
-        continue;
-    }
-    queue.Enqueue(((item.pos.X + 1, item.pos.Y), item.score + 1));
-    queue.Enqueue(((item.pos.X - 1, item.pos.Y), item.score + 1));
-    queue.Enqueue(((item.pos.X, item.pos.Y + 1), item.score + 1));
-    queue.Enqueue(((item.pos.X, item.pos.Y - 1), item.score + 1));
+    // no escape
+    return null;
 }
