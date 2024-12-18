@@ -99,4 +99,50 @@ public sealed class Examples
         Console.Error.WriteLine("part2: " + number);
         Assert.AreEqual(236555997372013, number);
     }
+
+
+    [TestMethod]
+    public void PuzzleFromFilePart2Brute()
+    {
+        // 2,4 B = A % 8
+        // 1,3 B = B ^ 3
+        // 7,5 C = A >> B
+        // 4,7 B = B ^ C
+        // 0,3 A = A >> 3
+        // 1,5 B = B ^ 5
+        // 5,5 Print(B%8)
+        // 3,0 = GOTO 0
+        var input = File.ReadAllLines("puzzle.txt");
+        var (_, _, _, instructions) = Processor.Parse(input);
+
+        var test = 236555000000000;
+        while (true)
+        {
+            test++;
+            int indexOffset = 0;
+            int outputCount = 0;
+            var valid = true;
+            long A = test, B = 0, C = 0;
+            while (indexOffset < instructions.Count)
+            {
+                (A, B, C, indexOffset, var output) = Processor.Step(A, B, C, instructions, indexOffset);
+                if (output is not null)
+                {
+                    if (outputCount >= instructions.Count || instructions[outputCount] != output)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    outputCount++;
+                }
+            }
+
+            if (valid)
+            {
+                break;
+            }
+        }
+
+        Assert.AreEqual(236555997372013, test);
+    }
 }
