@@ -19,8 +19,21 @@ var fallData = File.ReadLines(input).Select(l =>
 var fallDataHash = fallData.Take(part1Limit).ToHashSet();
 
 var result = FindExit(dim, fallDataHash);
-
 Console.WriteLine($"Part1: {result.Value.score}");
+foreach (var size in Enumerable.Range(part1Limit + 1, fallData.Count))
+{
+    var dataSet = fallData.Take(size);
+    var hash = dataSet.ToHashSet();
+    var part2Results = FindExit(dim, hash);
+    if (part2Results is null)
+    {
+        var pos = dataSet.Last();
+        Console.WriteLine($"Part2: {pos.Item1},{pos.Item2}");
+        break;
+    }
+}
+
+
 
 static ((int X, int Y) pos, int score)? FindExit(int dim, HashSet<(int x, int y)> falldata)
 {
