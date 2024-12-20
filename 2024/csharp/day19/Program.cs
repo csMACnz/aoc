@@ -35,6 +35,9 @@ var possible = new List<string>();
 
 var patternCache = new Dictionary<string, bool>();
 var patternCacheLookup = patternCache.GetAlternateLookup<ReadOnlySpan<char>>();
+
+var waysCache = new Dictionary<string, long>();
+var waysCacheLookup = waysCache.GetAlternateLookup<ReadOnlySpan<char>>();
 foreach (var pattern in patterns)
 {
     Console.Write(".");
@@ -45,6 +48,16 @@ foreach (var pattern in patterns)
 }
 Console.WriteLine();
 Console.WriteLine("Part1: " + possible.Count);
+
+var ways = 0L;
+foreach (var pattern in possible)
+{
+    checked
+    {
+        ways += WaysCount(pattern);
+    }
+}
+Console.WriteLine("part2: " + ways);
 
 bool PatternIsValid(ReadOnlySpan<char> pattern)
 {
@@ -63,4 +76,27 @@ bool PatternIsValid(ReadOnlySpan<char> pattern)
     }
     patternCache.Add(pattern.ToString(), false);
     return false;
+}
+
+
+long WaysCount(ReadOnlySpan<char> pattern)
+{
+    if (waysCacheLookup.TryGetValue(pattern, out var ways)) return ways;
+    if (pattern.Length == 0) return 1;
+    var result = 0L;
+    foreach (var size in Enumerable.Range(minTowelLength, maxTowelLength - minTowelLength + 1))
+    {
+        if (pattern.Length >= size)
+        {
+            if (lookup.Contains(pattern[..size]))
+            {
+                checked
+                {
+                    result += WaysCount(pattern[size..]);
+                }
+            }
+        }
+    }
+    waysCache.Add(pattern.ToString(), result);
+    return result;
 }
