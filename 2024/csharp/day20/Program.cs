@@ -8,6 +8,7 @@ var lines = File.ReadAllLines("puzzle.txt");
 var rowCount = lines.Length;
 var colCount = lines[0].Length;
 var grid = new bool[rowCount, colCount];
+var cache = new Dictionary<((int row, int col) start, (int row, int col) end), List<(int row, int col)>>();
 var start = (-1, -1);
 var end = (-1, -1);
 
@@ -32,63 +33,71 @@ foreach (var (row, line) in lines.Index())
 Console.WriteLine(start);
 Console.WriteLine(end);
 
-var basePath = CalculateSteps(grid, start, end);
+var basePath = CalculateSteps(start, end);
 var baseCount = basePath.Count - 1;
 Console.WriteLine("(9376) Part 0: " + baseCount);
 
-var cheatSize = 2;
-var result = 0;
-foreach (var index in Enumerable.Range(0, baseCount))
-{
-    var cheatStartPos = basePath[index];
-    foreach (var yx in OffsetsToCheck(cheatSize))
-    {
-        var cheatEndPos = (row: cheatStartPos.row + yx.row, col: cheatStartPos.col + yx.col);
-        if (cheatEndPos.row < 0 || cheatEndPos.row >= rowCount ||
-            cheatEndPos.col < 0 || cheatEndPos.col >= colCount) continue;
-        if (grid[cheatEndPos.row, cheatEndPos.col]) continue;
-        var postCheatSteps = CalculateSteps(grid, cheatEndPos, end);
-        var ans = index + cheatSize + postCheatSteps.Count - 1;
-        if (baseCount - ans >= 100)
-        {
-            result++;
-        }
-    }
-}
-
-Console.WriteLine("(1343) Part 1: " + result);
+Console.WriteLine("(1343) Part 1: " + CheatCalc(2));
+Console.WriteLine("(???) Part 2: " + CheatCalc(20));
 return;
 
 // var result = Part1BruteForce(grid);
 // Console.WriteLine("(1343) Part 1: " + result);
 
-int Part1BruteForce(bool[,] grid)
+int CheatCalc(int cheatSize)
 {
-    int rowCount = grid.GetLength(0);
-    int colCount = grid.GetLength(1);
     var result = 0;
-    foreach (var row in Enumerable.Range(0, rowCount))
+    foreach (var index in Enumerable.Range(0, baseCount))
     {
-        foreach (var col in Enumerable.Range(0, colCount))
+        var cheatStartPos = basePath[index];
+        foreach (var yx in OffsetsToCheck(cheatSize))
         {
-            Console.Write(".");
-            if (grid[row, col])
+            var cheatEndPos = (row: cheatStartPos.row + yx.row, col: cheatStartPos.col + yx.col);
+            if (cheatEndPos.row < 0 || cheatEndPos.row >= rowCount ||
+                cheatEndPos.col < 0 || cheatEndPos.col >= colCount) continue;
+            if (grid[cheatEndPos.row, cheatEndPos.col]) continue;
+            var postCheatSteps = CalculateSteps(cheatEndPos, end);
+            var ans = index + cheatSize + postCheatSteps.Count - 1;
+            if (baseCount - ans >= 100)
             {
-                grid[row, col] = false;
-                var ans = CalculateSteps(grid, start, end).Count;
-                if (baseCount - ans >= 100)
+                checked
                 {
                     result++;
                 }
-                grid[row, col] = true;
             }
         }
     }
     return result;
 }
 
-static List<(int row, int col)> CalculateSteps(bool[,] grid, (int, int) start, (int, int) end)
+// int Part1BruteForce(bool[,] grid)
+// {
+//     int rowCount = grid.GetLength(0);
+//     int colCount = grid.GetLength(1);
+//     var result = 0;
+//     foreach (var row in Enumerable.Range(0, rowCount))
+//     {
+//         foreach (var col in Enumerable.Range(0, colCount))
+//         {
+//             Console.Write(".");
+//             if (grid[row, col])
+//             {
+//                 grid[row, col] = false;
+//                 var ans = CalculateSteps(grid, start, end).Count;
+//                 if (baseCount - ans >= 100)
+//                 {
+//                     result++;
+//                 }
+//                 grid[row, col] = true;
+//             }
+//         }
+//     }
+//     return result;
+// }
+
+List<(int row, int col)> CalculateSteps((int, int) start, (int, int) end)
 {
+    if (cache.TryGetValue((start, end), out var result)) return result;
     int rowCount = grid.GetLength(0);
     int colCount = grid.GetLength(1);
     var queue = new Queue<Node>();
@@ -111,6 +120,7 @@ static List<(int row, int col)> CalculateSteps(bool[,] grid, (int, int) start, (
                 list.Add(item.pos);
             }
             list.Reverse();
+            cache.Add((start, end), list);
             return list;
         }
         if (grid[item.pos.row, item.pos.col]) continue;
@@ -119,6 +129,7 @@ static List<(int row, int col)> CalculateSteps(bool[,] grid, (int, int) start, (
         queue.Enqueue(new Node(item, (item.pos.row, item.pos.col + 1), item.count + 1));
         queue.Enqueue(new Node(item, (item.pos.row, item.pos.col - 1), item.count + 1));
     }
+    cache.Add((start, end), null!);
     return null!;
 }
 
