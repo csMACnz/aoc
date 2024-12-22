@@ -2,7 +2,7 @@
 using System.Diagnostics;
 
 var remoteCache = new Dictionary<(char, string), string[]>();
-var expandCache = new Dictionary<(char, char), string[]>();
+var expandCache = new Dictionary<(char, char), string>();
 
 Console.WriteLine("Hello, World!");
 
@@ -11,10 +11,9 @@ var input = File.ReadAllLines("puzzle.txt");
 var score = 0;
 foreach (var code in input)
 {
-    string[] instructionsPossibilities = GetKeypadInstructions('A', code)
-        .SelectMany(p => FastCacheRemote('A', p)).ToArray();
+    string shortest = GetKeypadInstructions('A', code)
+        .Select(p => FastCacheRemote('A', p)).MinBy(x => x.Length)!;
 
-    var shortest = instructionsPossibilities.MinBy(x => x.Length)!;
     var numberPart = GetNumericPart(code);
     score += shortest.Length * numberPart;
 
@@ -81,20 +80,22 @@ static string[] KeyPadSteps(char from, char to)
     };
 }
 
-string[] FastCacheRemote(char ch, ReadOnlySpan<char> code)
+string FastCacheRemote(char ch, ReadOnlySpan<char> code)
 {
-    if (code.Length is 0) return [""];
-    var currentParts = CachedSingleTwiceExpanded(ch, code[0]);
+    if (code.Length is 0) return "";
+    var shortestPart = CachedSingleTwiceExpanded(ch, code[0]);
     var rest = FastCacheRemote(code[0], code[1..]);
-    return currentParts.SelectMany(l => rest.Select(r => l + r)).ToArray();
+    return shortestPart + rest;
 }
 
-string[] CachedSingleTwiceExpanded(char leftCh, char rightCh)
+string CachedSingleTwiceExpanded(char leftCh, char rightCh)
 {
-    if (expandCache.TryGetValue((leftCh, rightCh), out var cacheResults)) return cacheResults;
-    var results = RemoteSteps(leftCh, rightCh).SelectMany(s => GetRemoteInstructions('A', s)).ToArray();
-    expandCache.Add((leftCh, rightCh), results);
-    return results;
+    if (expandCache.TryGetValue((leftCh, rightCh), out var cacheResult)) return cacheResult;
+    var shortestResult = RemoteSteps(leftCh, rightCh)
+        .SelectMany(s => GetRemoteInstructions('A', s))
+        .MinBy(s => s.Length)!;
+    expandCache.Add((leftCh, rightCh), shortestResult);
+    return shortestResult;
 }
 
 string[] GetRemoteInstructions(char ch, ReadOnlySpan<char> code)
