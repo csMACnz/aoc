@@ -1,22 +1,16 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.Diagnostics;
 
-var expandCache = new Dictionary<(char, char, int), long>();
-var depthCache = new Dictionary<(char, char, int), char[][]>();
+var depthCache = new Dictionary<(char, char, int), long>();
 
 Console.WriteLine("Hello, World!");
 
-var input = File.ReadAllLines("sample.txt");
+var input = File.ReadAllLines("puzzle.txt");
 var part1Score = Score(2);
 Console.WriteLine("Part1: " + part1Score);
 
-foreach (var test in Enumerable.Range(3, 20))
-{
-    var testAScore = Score(test);
-    Console.WriteLine($"{test}==: {testAScore}");
-}
-
 var part2Score = Score(25);
+Console.WriteLine("131133457150322 < ANS < 320650760342028");
 Console.WriteLine("Part2: " + part2Score);
 
 long Score(int depth)
@@ -25,7 +19,7 @@ long Score(int depth)
     foreach (var code in input)
     {
         var shortestLength = GetKeypadInstructions('A', code)
-            .Select(p => FastCacheRemote(p, depth)).Min();
+            .Select(p => GetShortestInstructions(p, depth)).Min();
 
         var numberPart = GetNumericPart(code);
         checked
@@ -95,7 +89,7 @@ static string[] KeyPadSteps(char from, char to)
     };
 }
 
-long FastCacheRemote(ReadOnlySpan<char> code, int depth)
+long GetShortestInstructions(ReadOnlySpan<char> code, int depth)
 {
     var length = 0L;
     var index = 0;
@@ -103,53 +97,26 @@ long FastCacheRemote(ReadOnlySpan<char> code, int depth)
     while (index < code.Length)
     {
         var currentCh = code[index];
-        var shortestLength = CachedSingleExpanded(lastChar, currentCh, depth);
-        length += shortestLength;
+        var shortestLength = GetShortestInstructionLength(lastChar, currentCh, depth);
+        checked
+        {
+            length += shortestLength;
+        }
         index++;
         lastChar = currentCh;
     }
     return length;
 }
 
-long CachedSingleExpanded(char leftCh, char rightCh, int depth)
-{
-    if (expandCache.TryGetValue((leftCh, rightCh, depth), out var cacheResult)) return cacheResult;
-    var results = GetRemoteInstructions2(leftCh, rightCh, depth);
-    var shortestLength = results.MinBy(s => s.Length)!.Length;
-    expandCache.Add((leftCh, rightCh, depth), shortestLength);
-    return shortestLength;
-}
-
-char[][] GetRemoteInstructions(ReadOnlySpan<char> code, int depth)
-{
-    char[][] results = [[]];
-    var index = 0;
-    var lastChar = 'A';
-    while (index < code.Length)
-    {
-        Console.Write('X');
-        var currentCh = code[index];
-        var nextResults = GetRemoteInstructions2(lastChar, currentCh, depth);
-        results = results.SelectMany(s => nextResults.Select<char[], char[]>(n => [.. s, .. n])).ToArray();
-        index++;
-        lastChar = currentCh;
-    }
-    return results;
-}
-
-char[][] GetRemoteInstructions2(char fromCh, char toCh, int depth)
+long GetShortestInstructionLength(char fromCh, char toCh, int depth)
 {
     if (depthCache.TryGetValue((fromCh, toCh, depth), out var cacheResult)) return cacheResult;
-    var results = RemoteSteps(fromCh, toCh).Select(s => s.ToCharArray()).ToArray();
-    if (depth > 1)
-    {
-        results = results.SelectMany(r => GetRemoteInstructions(r, depth - 1)).ToArray();
-    }
-    // var minLength = results.MinBy(x => x.Length)!.Length;
-    // results = results.Where(x => x.Length == minLength).ToArray();
-    results = [results.MinBy(x => x.Length)!];
-    depthCache[(fromCh, toCh, depth)] = results;
-    return results;
+    var remoteSteps = RemoteSteps(fromCh, toCh);
+    var result = depth <= 1
+    ? remoteSteps.Min(x => (long)x.Length)
+    : remoteSteps.Min(r => GetShortestInstructions(r, depth - 1));
+    depthCache[(fromCh, toCh, depth)] = result;
+    return result;
 }
 
 static string[] RemoteSteps(char from, char to)
@@ -160,7 +127,7 @@ static string[] RemoteSteps(char from, char to)
         ('A', '^') => ["<A"],
         ('A', 'v') => ["<vA", "v<A"],
         ('A', '>') => ["vA"],
-        ('A', '<') => ["v<<A", "<v<A", "<<vA"],
+        ('A', '<') => ["v<<A", "<v<A", /*gap*/],
         ('^', 'v') => ["vA"],
         ('^', '<') => ["v<A" /* gap */],
         ('^', '>') => ["v>A", ">vA"],
