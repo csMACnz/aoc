@@ -1,29 +1,41 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.Diagnostics;
-using System.Text;
 
-var remoteCache = new Dictionary<(char, string), string[]>();
-var expandCache = new Dictionary<(char, char), string>();
+var expandCache = new Dictionary<(char, char, int), long>();
+var depthCache = new Dictionary<(char, char, int), char[][]>();
 
 Console.WriteLine("Hello, World!");
 
-var input = File.ReadAllLines("puzzle.txt");
+var input = File.ReadAllLines("sample.txt");
+var part1Score = Score(2);
+Console.WriteLine("Part1: " + part1Score);
 
-var score = 0;
-foreach (var code in input)
+foreach (var test in Enumerable.Range(3, 20))
 {
-    string shortest = GetKeypadInstructions('A', code)
-        .Select(p => FastCacheRemote('A', p)).MinBy(x => x.Length)!;
-
-    var numberPart = GetNumericPart(code);
-    checked
-    {
-        score += shortest.Length * numberPart;
-    }
-    Console.WriteLine($"{code}({numberPart}): {shortest}({shortest.Length})");
+    var testAScore = Score(test);
+    Console.WriteLine($"{test}==: {testAScore}");
 }
 
-Console.WriteLine("Part1: " + score);
+var part2Score = Score(25);
+Console.WriteLine("Part2: " + part2Score);
+
+long Score(int depth)
+{
+    var score = 0L;
+    foreach (var code in input)
+    {
+        var shortestLength = GetKeypadInstructions('A', code)
+            .Select(p => FastCacheRemote(p, depth)).Min();
+
+        var numberPart = GetNumericPart(code);
+        checked
+        {
+            score += shortestLength * numberPart;
+        }
+        // Console.WriteLine($"{code}({numberPart}): {shortest}({shortest.Length})");
+    }
+    return score;
+}
 
 string[] GetKeypadInstructions(char ch, ReadOnlySpan<char> code)
 {
@@ -83,51 +95,61 @@ static string[] KeyPadSteps(char from, char to)
     };
 }
 
-string FastCacheRemote(char ch, ReadOnlySpan<char> code)
+long FastCacheRemote(ReadOnlySpan<char> code, int depth)
 {
-    var sb = new StringBuilder();
+    var length = 0L;
     var index = 0;
-    var lastChar = ch;
+    var lastChar = 'A';
     while (index < code.Length)
     {
         var currentCh = code[index];
-        var shortestPart = CachedSingleTwiceExpanded(lastChar, currentCh);
-        sb.Append(shortestPart);
+        var shortestLength = CachedSingleExpanded(lastChar, currentCh, depth);
+        length += shortestLength;
         index++;
         lastChar = currentCh;
     }
-    return sb.ToString();
+    return length;
 }
 
-string CachedSingleTwiceExpanded(char leftCh, char rightCh)
+long CachedSingleExpanded(char leftCh, char rightCh, int depth)
 {
-    if (expandCache.TryGetValue((leftCh, rightCh), out var cacheResult)) return cacheResult;
-    var shortestResult = RemoteSteps(leftCh, rightCh)
-        .SelectMany(s => GetRemoteInstructions('A', s))
-        .MinBy(s => s.Length)!;
-    expandCache.Add((leftCh, rightCh), shortestResult);
-    return shortestResult;
+    if (expandCache.TryGetValue((leftCh, rightCh, depth), out var cacheResult)) return cacheResult;
+    var results = GetRemoteInstructions2(leftCh, rightCh, depth);
+    var shortestLength = results.MinBy(s => s.Length)!.Length;
+    expandCache.Add((leftCh, rightCh, depth), shortestLength);
+    return shortestLength;
 }
 
-string[] GetRemoteInstructions(char ch, ReadOnlySpan<char> code)
+char[][] GetRemoteInstructions(ReadOnlySpan<char> code, int depth)
 {
-    if (code.Length is 0) return [""];
-    if (remoteCache.TryGetValue((ch, code.ToString()), out var cacheResult)) return cacheResult;
-    var nextChar = code[0];
-    var currentParts = RemoteSteps(ch, nextChar);
-    var nextParts = GetRemoteInstructions(nextChar, code[1..]);
-    var results = new List<string>();
-    foreach (var lhs in currentParts)
+    char[][] results = [[]];
+    var index = 0;
+    var lastChar = 'A';
+    while (index < code.Length)
     {
-        foreach (var rhs in nextParts)
-        {
-            results.Add(lhs + rhs);
-        }
+        Console.Write('X');
+        var currentCh = code[index];
+        var nextResults = GetRemoteInstructions2(lastChar, currentCh, depth);
+        results = results.SelectMany(s => nextResults.Select<char[], char[]>(n => [.. s, .. n])).ToArray();
+        index++;
+        lastChar = currentCh;
     }
+    return results;
+}
 
-    var output = results.ToArray();
-    remoteCache.Add((ch, code.ToString()), output);
-    return output;
+char[][] GetRemoteInstructions2(char fromCh, char toCh, int depth)
+{
+    if (depthCache.TryGetValue((fromCh, toCh, depth), out var cacheResult)) return cacheResult;
+    var results = RemoteSteps(fromCh, toCh).Select(s => s.ToCharArray()).ToArray();
+    if (depth > 1)
+    {
+        results = results.SelectMany(r => GetRemoteInstructions(r, depth - 1)).ToArray();
+    }
+    // var minLength = results.MinBy(x => x.Length)!.Length;
+    // results = results.Where(x => x.Length == minLength).ToArray();
+    results = [results.MinBy(x => x.Length)!];
+    depthCache[(fromCh, toCh, depth)] = results;
+    return results;
 }
 
 static string[] RemoteSteps(char from, char to)
@@ -158,7 +180,7 @@ static string[] RemoteSteps(char from, char to)
         _ => throw new UnreachableException("Missing Conbo" + (from, to))
     };
 }
-static int GetNumericPart(ReadOnlySpan<char> chars)
+static long GetNumericPart(ReadOnlySpan<char> chars)
 {
     int val = 0;
     foreach (var ch in chars)
