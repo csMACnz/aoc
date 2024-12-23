@@ -1,5 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.Diagnostics;
+using System.Text;
 
 var remoteCache = new Dictionary<(char, string), string[]>();
 var expandCache = new Dictionary<(char, char), string>();
@@ -15,8 +16,10 @@ foreach (var code in input)
         .Select(p => FastCacheRemote('A', p)).MinBy(x => x.Length)!;
 
     var numberPart = GetNumericPart(code);
-    score += shortest.Length * numberPart;
-
+    checked
+    {
+        score += shortest.Length * numberPart;
+    }
     Console.WriteLine($"{code}({numberPart}): {shortest}({shortest.Length})");
 }
 
@@ -55,7 +58,7 @@ static string[] KeyPadSteps(char from, char to)
         ('0', '8') => ["^^^A"],
         ('0', 'A') => [">A"],
         ('1', '7') => ["^^A"],
-        ('1', 'A') => [">>vA", ">v>A", "v>>A"],
+        ('1', 'A') => [">>vA", ">v>A", /*gap*/],
         ('2', '0') => ["vA"],
         ('2', '9') => [">^^A", "^>^A", "^^>A"],
         ('3', '4') => ["^<<A", "<^<A", "<<^A"],
@@ -82,10 +85,18 @@ static string[] KeyPadSteps(char from, char to)
 
 string FastCacheRemote(char ch, ReadOnlySpan<char> code)
 {
-    if (code.Length is 0) return "";
-    var shortestPart = CachedSingleTwiceExpanded(ch, code[0]);
-    var rest = FastCacheRemote(code[0], code[1..]);
-    return shortestPart + rest;
+    var sb = new StringBuilder();
+    var index = 0;
+    var lastChar = ch;
+    while (index < code.Length)
+    {
+        var currentCh = code[index];
+        var shortestPart = CachedSingleTwiceExpanded(lastChar, currentCh);
+        sb.Append(shortestPart);
+        index++;
+        lastChar = currentCh;
+    }
+    return sb.ToString();
 }
 
 string CachedSingleTwiceExpanded(char leftCh, char rightCh)
