@@ -19,19 +19,26 @@ foreach (var destination in destinations)
     queue.Enqueue((destination, destinations.Where(d => d != destination).ToArray()), 0L);
 }
 
+var allPaths = new List<long>();
 while (queue.TryDequeue(out var item, out long score))
 {
     if (item.remainder.Length == 0)
     {
-        Console.WriteLine("Part1: " + score);
-        break;
+        allPaths.Add(score);
     }
-    foreach (var next in item.remainder.Select(d => distances.FirstOrDefault(e => e.From == item.current && e.To == d)))
+    else
     {
-        if (next is not null)
+        foreach (var next in item.remainder.Select(d => distances.FirstOrDefault(e => e.From == item.current && e.To == d)))
         {
-            queue.Enqueue((next.To, item.remainder.Where(d => d != next.To).ToArray()), score + next.Distance);
+            if (next is not null)
+            {
+                queue.Enqueue((next.To, item.remainder.Where(d => d != next.To).ToArray()), score + next.Distance);
+            }
         }
     }
 }
+
+Console.WriteLine("Part1: " + allPaths.Min());
+Console.WriteLine("Part2: " + allPaths.Max());
+
 record class Edge(string From, string To, long Distance);
