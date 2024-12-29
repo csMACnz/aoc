@@ -13,6 +13,9 @@ foreach (string sample in new string[] { "1", "11", "21", "1211", "111211" })
 var part1Result = Enumerable.Repeat(0, 40).Aggregate(input, (i, _) => Process(i)).Length;
 Console.WriteLine("Part1: " + part1Result);
 
+var part2Result = Enumerable.Repeat(0, 50).Aggregate(input, (i, _) => Process(i)).Length;
+Console.WriteLine("Part1: " + part2Result);
+
 static string Process(string input)
 {
     char? last = null;
