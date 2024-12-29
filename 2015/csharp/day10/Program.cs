@@ -14,7 +14,7 @@ var part1Result = Enumerable.Repeat(0, 40).Aggregate(input, (i, _) => Process(i)
 Console.WriteLine("Part1: " + part1Result);
 
 var part2Result = Enumerable.Repeat(0, 50).Aggregate(input, (i, _) => Process(i)).Length;
-Console.WriteLine("Part1: " + part2Result);
+Console.WriteLine("Part2: " + part2Result);
 
 static string Process(string input)
 {
