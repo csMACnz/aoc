@@ -13,6 +13,14 @@ do
 
 Console.WriteLine("Part 1: " + newPassword);
 
+do
+{
+    newPassword = Increment(newPassword);
+} while (!IsValid(newPassword));
+
+
+Console.WriteLine("Part 2: " + newPassword);
+
 static string Increment(string input)
 {
     var rotate = input.ToArray();
