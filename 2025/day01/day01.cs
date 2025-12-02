@@ -17,23 +17,56 @@ var content = (await response.Content.ReadAsStringAsync()).Trim();
 // Console.WriteLine(content);
 Console.WriteLine($"Day01: {Day01(content.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None))}");
 
-static int Day01(IEnumerable<string> input)
+static (int one, int two) Day01(IEnumerable<string> input)
 {
     var returnsToZeroCount = 0; 
+    var passesZeroCount = 0;
     var position = 50;
     foreach (var line in input)
     {
+        // Console.WriteLine("START:" + line + ":" + position);
+        var startedAt = position;
         var distance = int.Parse(line[1..]);
         if(line[0] == 'L')
         {
             distance = -distance;
         }
-        position = (position + distance + 100) % 100;
-        // Console.WriteLine($"{line}: Current position: {position}");
-        if(position % 100 == 0)
+        position += distance;
+
+        if(position <= 0 || position >= 100)
         {
+            if(position < 0  && startedAt == 0)
+            {
+                passesZeroCount--;
+            }
+            while(position < 0)
+            {
+                // Console.WriteLine("ROTATING:" + line + ":" + position);
+                position += 100;
+                passesZeroCount++;
+            }
+            while(position > 100)
+            {
+                // Console.WriteLine("ROTATING:" + line + ":" + position);
+                position -= 100;
+                passesZeroCount++;
+            }
+            if(position == 100 || position == 0)
+            {
+                if(distance != 0)
+                {
+                    // Console.WriteLine("ENDDED:" + line + ":" + position);
+                    passesZeroCount++;
+                }
+                position = 0;
+            }
+        }
+        if(position == 0)
+        {
+            // Console.WriteLine("RESETTING:" + line + ":" + position);
             returnsToZeroCount++;
         }
+        // Console.WriteLine("END:" + line + ":" + position);
     }
-    return returnsToZeroCount;
+    return (returnsToZeroCount, passesZeroCount);
 }
