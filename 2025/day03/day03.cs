@@ -20,34 +20,19 @@ var content = (await response.Content.ReadAsStringAsync()).Trim();
 // Console.WriteLine(content);
 Console.WriteLine($"   Day03: {Puzzle(content)}");
 
-static (long one, long two) Puzzle(string input)
+static (long one, long two) Puzzle(ReadOnlySpan<char> input)
 {
-    string[] banks = input.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+    var separators = System.Buffers.SearchValues.Create(['\n', '\r' ]);
+    var bankRanges = input.SplitAny(separators);
     var part1 = 0L;
     var part2 = 0L;
-    foreach (var bank in banks)
+    foreach (var bankRange in bankRanges)
     {
-        // // Process each line if needed
-        // char firstDigit = bank[0];
-        // char? secondDigit = null;
-        // for (int i = 1; i < bank.Length; i++)
-        // {
-        //     if (i < bank.Length - 1 && bank[i] > firstDigit)
-        //     {
-        //         // not at the end, and current char is greater than current first digit
-        //         firstDigit = bank[i];
-        //         secondDigit = null;
-        //     }
-        //     else if (secondDigit.HasValue == false)
-        //     {
-        //         secondDigit = bank[i];
-        //     }
-        //     else if (bank[i] > secondDigit.Value)
-        //     {
-        //         secondDigit = bank[i];
-        //     }
-        // }
-        // var score = (firstDigit - '0') * 10 + (secondDigit.Value - '0');
+        var bank = input[bankRange];
+        if(bank.Length == 0)
+        {
+            continue;
+        }
         var score = ScoreForBank(bank, 2);
         part1 += score;
         part2 += ScoreForBank(bank, 12);
@@ -56,7 +41,7 @@ static (long one, long two) Puzzle(string input)
     return (part1, part2);
 }
 
-static long ScoreForBank(string bank, int length)
+static long ScoreForBank(ReadOnlySpan<char> bank, int length)
 {
     // Process each line if needed
     char?[] digits = new char?[length];
