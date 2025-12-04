@@ -1,6 +1,7 @@
 #!/usr/local/share/dotnet/dotnet run
 #:package Colorful.Console@1.2.15
 
+using System.Data;
 using System.Runtime.CompilerServices;
 
 Colorful.Console.WriteAscii("AoC 2025 Day 4");
@@ -33,9 +34,6 @@ Console.WriteLine($"   Day04: {Puzzle(content)}");
 
 static (long one, long two) Puzzle(ReadOnlySpan<char> input)
 {
-    var part1 = 0L;
-    var part2 = 0L;
-
     var lines = input.EnumerateLines();
     var rowOffset = 0;
     var colCount = 0;
@@ -57,6 +55,24 @@ static (long one, long two) Puzzle(ReadOnlySpan<char> input)
     }
     var rowCount = rowOffset;
 
+    var removeList = GetRemovableRolls(rollPositions, rowCount, colCount);
+    var part1 = removeList.Count;
+    var part2 = removeList.Count;
+    while(removeList.Count > 0)
+    {
+        foreach (var pos in removeList)
+        {
+            rollPositions.Remove(pos);
+        }
+        removeList = GetRemovableRolls(rollPositions, rowCount, colCount);
+        part2 += removeList.Count;
+    }
+    return (part1, part2);
+}
+
+static List<(int row, int col)> GetRemovableRolls(Dictionary<(int, int), int> rollPositions, int rowCount, int colCount)
+{
+    var removeList = new List<(int, int)>();
     for (var row = 0; row < rowCount; row++)
     {
         for (var col = 0; col < colCount; col++)
@@ -75,11 +91,10 @@ static (long one, long two) Puzzle(ReadOnlySpan<char> input)
                 }
                 if (neighborCount < 4)
                 {
-                    part1++;
+                    removeList.Add((row, col));
                 }
             }
         }
-    }
-
-    return (part1, part2);
+    }   
+    return removeList;
 }
