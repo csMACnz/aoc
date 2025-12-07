@@ -80,38 +80,34 @@ static (long one, long two) Puzzle(ReadOnlySpan<char> input)
         }
     }
 
+    foreach(var range in ranges)
+    {
+        part2 += range.End - range.Start + 1;
+    }
+
     return (part1, part2);
 }
 
 static void Merge(SortedSet<Range> ranges)
 {
-    var toRemove = new List<Range>();
-    var toAdd = new List<Range>();
-    Range? lastRange = null;
-    do
+    var index = 0;
+    while(index < ranges.Count - 1)
     {
-        foreach (var range in ranges)
+        var current = ranges.ElementAt(index);
+        var next = ranges.ElementAt(index + 1);
+        if (next.Start <= current.End)
         {
-            if (lastRange == null)
-            {
-                lastRange = range;
-                continue;
-            }
-            if (range.Start <= lastRange.Value.End)
-            {
-                // Overlap
-                ranges.Remove(lastRange.Value);
-                ranges.Remove(range);
-                var newRange = new Range(lastRange.Value.Start, Math.Max(lastRange.Value.End, range.End));
-                ranges.Add(newRange);
-                break;
-            }
-            else
-            {
-                lastRange = range;
-            }
+            // Overlap
+            ranges.Remove(current);
+            ranges.Remove(next);
+            var newRange = new Range(current.Start, Math.Max(current.End, next.End));
+            ranges.Add(newRange);
         }
-    } while (toRemove.Count > 0);
+        else
+        {
+            index++;
+        }
+    }
 }
 
 readonly record struct Range(long Start, long End) : IComparable<Range>
