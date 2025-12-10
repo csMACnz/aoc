@@ -5,7 +5,6 @@
 
 using Xunit;
 using AwesomeAssertions;
-using Xunit.Internal;
 
 if (args.Length > 0 && args[0] == "test")
 {
@@ -15,7 +14,7 @@ if (args.Length > 0 && args[0] == "test")
 
 Colorful.Console.WriteAscii("AoC 2025 Day 7");
 
-Console.WriteLine($"Expected: (21, 0)");
+Console.WriteLine($"Expected: (21, 40)");
 Console.WriteLine($" Example: {Puzzle(TestInput)}");
 
 HttpClient client = new HttpClient();
@@ -77,12 +76,42 @@ public partial class Program
                 }
             }
             currentBeamIndexes = nextBeamIndexes;
-            Console.WriteLine($"Row {row}: Beams at {string.Join(", ", currentBeamIndexes)}");
+            // Console.WriteLine($"Row {row}: Beams at {string.Join(", ", currentBeamIndexes)}");
         }
 
         long part1 = splitCount;
 
+        part2 = CountPaths([], grid, 0, start);
+
         return (part1, part2);
+    }
+
+    private static long CountPaths(Dictionary<(int,int), long> cache, List<List<char>> grid, int row, int col)
+    {
+        if(cache.TryGetValue((row, col), out var cached))
+        {
+            return cached;
+        }
+
+        if (row == grid.Count)
+        {
+            return 1;
+        }
+
+        var cell = grid[row][col];
+
+        long response;
+        if (cell == '^')
+        {
+            response = CountPaths(cache, grid, row + 1, col - 1) + CountPaths(cache, grid, row + 1, col + 1);
+        }
+        else
+        {
+            response = CountPaths(cache, grid, row + 1, col);
+        }
+
+        cache[(row, col)] = response;
+        return response;
     }
 
     public static List<List<char>> ParseGrid(ReadOnlySpan<char> input)
@@ -103,7 +132,7 @@ public class Tests
     [Fact]
     public void TestExample()
     {
-        Program.Puzzle(Program.TestInput).Should().Be((21, 0));
+        Program.Puzzle(Program.TestInput).Should().Be((21, 40));
     }
 
     [Fact]
