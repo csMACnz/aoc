@@ -16,7 +16,7 @@ if (args.Length > 0 && args[0] == "test")
 
 Colorful.Console.WriteAscii("AoC 2025 Day 8");
 
-Console.WriteLine($"Expected: (40, 0)");
+Console.WriteLine($"Expected: (40, 25272)");
 Console.WriteLine($" Example: {Puzzle(TestInput, 10)}");
 
 HttpClient client = new HttpClient();
@@ -72,7 +72,7 @@ public partial class Program
 
             points.Add((x, y, z));
         }
-
+        var disconnected = new HashSet<(long x, long y, long z)>(points);
         var pairs = new SortedSet<(double distance, (long x, long y, long z) a, (long x, long y, long z) b)>();
 
         for (int i = 0; i < points.Count; i++)
@@ -88,29 +88,52 @@ public partial class Program
         }
 
         List<HashSet<(long x, long y, long z)>> groups = [];
-        for(var index = 0; index < joinCount; index++)
+        for (var index = 0; index < joinCount; index++)
         {
             var (_, a, b) = pairs.ElementAt(index);
-
-            List<HashSet<(long x, long y, long z)>> groupsToRemove = [];
-            HashSet<(long x, long y, long z)> newGroup = [a, b];
-            foreach (var group in groups)
-            {
-                if (group.Contains(a) || group.Contains(b))
-                {
-                    groupsToRemove.Add(group);
-                    newGroup.AddRange(group);
-                }
-            }
-            groups.Add(newGroup);
-            foreach (var group in groupsToRemove)
-            {
-                groups.Remove(group);
-            }
+            Connect(disconnected, groups, a, b);
         }
 
         part1 = groups.OrderByDescending(g => g.Count).Take(3).Aggregate(1L, (a, b) => a * b.Count);
+
+        var nextIndex = joinCount;
+        while (disconnected.Count > 0)
+        {
+            var (_, a, b) = pairs.ElementAt(nextIndex);
+            Connect(disconnected, groups, a, b);
+            // Console.WriteLine($"{a} <==> {b}");
+            part2 = a.x * b.x;
+            
+            nextIndex++;
+        }
+
         return (part1, part2);
+    }
+
+    private static void Connect(HashSet<(long x, long y, long z)> disconnected, List<HashSet<(long x, long y, long z)>> groups, (long x, long y, long z) a, (long x, long y, long z) b)
+    {
+        List<HashSet<(long x, long y, long z)>> groupsToRemove = [];
+        HashSet<(long x, long y, long z)> newGroup = [a, b];
+        foreach (var group in groups)
+        {
+            if (group.Contains(a) || group.Contains(b))
+            {
+                groupsToRemove.Add(group);
+                newGroup.AddRange(group);
+            }
+            if(group.Contains(a) && group.Contains(b))
+            {
+                // break early, already connected
+                break;
+            }
+        }
+        groups.Add(newGroup);
+        foreach (var group in groupsToRemove)
+        {
+            groups.Remove(group);
+        }
+        disconnected.Remove(a);
+        disconnected.Remove(b);
     }
 }
 
@@ -119,12 +142,12 @@ public class Tests
     [Fact]
     public void TestExample_A()
     {
-        Program.Puzzle(Program.TestInput, 3).Should().Be((6, 0));
+        Program.Puzzle(Program.TestInput, 3).Should().Be((6, 25272));
     }
 
     [Fact]
     public void TestExample_B()
     {
-        Program.Puzzle(Program.TestInput, 10).Should().Be((40, 0));
+        Program.Puzzle(Program.TestInput, 10).Should().Be((40, 25272));
     }
 }
