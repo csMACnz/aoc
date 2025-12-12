@@ -16,7 +16,7 @@ if (args.Length > 0 && args[0] == "test")
 
 Colorful.Console.WriteAscii("AoC 2025 Day 9");
 
-Console.WriteLine($"Expected: (50, 0)");
+Console.WriteLine($"Expected: (50, 24)");
 Console.WriteLine($" Example: {Puzzle(TestInput)}");
 
 HttpClient client = new HttpClient();
@@ -47,7 +47,7 @@ public partial class Program
         var part1 = 0L;
         var part2 = 0L;
 
-        var points = new List<Point>();
+        var points = new List<(long x, long y)>();
         var lines = input.EnumerateLines();
         while (lines.MoveNext())
         {
@@ -57,10 +57,12 @@ public partial class Program
             var x = long.Parse(line[parts.Current]);
             parts.MoveNext();
             var y = long.Parse(line[parts.Current]);
-            points.Add(new Point(x, y));
+            points.Add((x, y));
         }
 
-        var max = 0L;
+        var candidates = new SortedSet<(long area, (long x, long y) a, (long x, long y) b)>(
+            Comparer<(long area, (long x, long y) a, (long x, long y) b)>.Create(
+                (x, y) => -x.area.CompareTo(y.area)));
         for (var i = 0; i < points.Count; i++)
         {
             var a = points[i];
@@ -68,21 +70,50 @@ public partial class Program
             {
                 var b = points[j];
                 var area = (Math.Abs(a.x - b.x) + 1) * (Math.Abs(a.y - b.y) + 1);
-                max = Math.Max(max, area);
+                candidates.Add((area, a, b));
             }
         }
-        part1 = max;
+        part1 = candidates.First().area;
+        foreach(var candidate in candidates)
+        {
+            var containsAnotherPoint = false;
+            for (int i = 0; i < points.Count; i++)
+            {
+                (long x, long y) point = points[i];
+                if (point != candidate.a && point != candidate.b)
+                {
+                    // if point is inside, not on edge
+                    // or if point is on edge but at least one of the lines are not edge aligned
+                    // can't work
+                    // Or is this shoelace again?
+                    // NOT DONE YET
+                    
+                    var withinX = point.x > Math.Min(candidate.a.x, candidate.b.x) && point.x < Math.Max(candidate.a.x, candidate.b.x);
+                    var withinXIncludingEdges = point.x >= Math.Min(candidate.a.x, candidate.b.x) && point.x <= Math.Max(candidate.a.x, candidate.b.x);
+                    var withinY = point.y > Math.Min(candidate.a.y, candidate.b.y) && point.y < Math.Max(candidate.a.y, candidate.b.y);
+                    var withinYIncludingEdges = point.y >= Math.Min(candidate.a.y, candidate.b.y) && point.y <= Math.Max(candidate.a.y, candidate.b.y);
+                    if ((withinX && withinYIncludingEdges) || (withinXIncludingEdges && withinY))
+                    {
+                        containsAnotherPoint = true;
+                        break;
+                    }
+                }
+            }
+            if (!containsAnotherPoint)
+            {
+                part2 = candidate.area;
+                break;
+            }
+        }
         return (part1, part2);
     }
 }
-
-public record struct Point(long x, long y);
 
 public class Tests
 {
     [Fact]
     public void TestExample()
     {
-        Program.Puzzle(Program.TestInput).Should().Be((50, 0));
+        Program.Puzzle(Program.TestInput).Should().Be((50, 24));
     }
 }
